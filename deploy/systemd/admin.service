@@ -1,0 +1,27 @@
+[Unit]
+Description=Wing Bank Admin Panel (FastAPI)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/wingbank/admin
+EnvironmentFile=/opt/wingbank/admin/.env
+Environment=PYTHONPATH=/opt/wingbank/admin
+ExecStart=/opt/wingbank/admin/.venv/bin/uvicorn app.main:app \
+  --host 127.0.0.1 \
+  --port 8080 \
+  --workers 2 \
+  --log-level info
+Restart=always
+RestartSec=5s
+LimitNOFILE=65536
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
