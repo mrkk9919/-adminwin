@@ -32,13 +32,12 @@ def _verify_password(plain: str) -> bool:
 
     We accept both plain-text and bcrypt-hashed passwords in .env so operators
     can either keep things simple in dev (plain) or harden production (hash
-    the password with `passlib.hash.bcrypt.hash(plain)` and paste the result).
+    the password with `bcrypt.hashpw(plain.encode(), bcrypt.gensalt())` and paste the result).
     """
     settings = get_settings()
     if settings.admin_password.startswith("$2b$"):
-        from passlib.context import CryptContext
-        ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        return ctx.verify(plain, settings.admin_password)
+        import bcrypt
+        return bcrypt.checkpw(plain.encode(), settings.admin_password.encode())
     return plain == settings.admin_password
 
 
