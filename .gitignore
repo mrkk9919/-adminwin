@@ -56,3 +56,5 @@ Thumbs.db
 # Temp
 zi0bCYXj
 frontend.log
+tgbot/.env.copilot.bak
+*.bak
