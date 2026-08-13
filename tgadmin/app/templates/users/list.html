@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理 - TGAdmin{% endblock %}
+{% block page_title %}用户管理{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" action="/users" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">搜索</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control"
+                           placeholder="用户名、姓名 或 Telegram ID"
+                           value="{{ search }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">状态</label>
+                <select name="status" class="form-select">
+                    <option value="" {% if status == '' %}selected{% endif %}>全部</option>
+                    <option value="active" {% if status == 'active' %}selected{% endif %}>活跃</option>
+                    <option value="banned" {% if status == 'banned' %}selected{% endif %}>已封禁</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-funnel me-1"></i> 筛选
+                </button>
+                <a href="/users" class="btn btn-outline-secondary">重置</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- User Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">用户列表 <span class="badge bg-secondary ms-1">{{ total }}</span></h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Telegram ID</th>
+                    <th>用户名</th>
+                    <th>姓名</th>
+                    <th>状态</th>
+                    <th>注册时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td><code>{{ user.tg_user_id }}</code></td>
+                    <td>
+                        {% if user.username %}
+                            <a href="https://t.me/{{ user.username }}" target="_blank">@{{ user.username }}</a>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.full_name }}</td>
+                    <td>
+                        {% if user.is_banned %}
+                            <span class="badge bg-danger">已封禁</span>
+                        {% else %}
+                            <span class="badge bg-success">正常</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else '-' }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="/users/{{ user.id }}" class="btn btn-outline-primary" title="详情">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <button class="btn btn-outline-{% if user.is_banned %}success{% else %}danger{% endif %} btn-ban"
+                                    data-user-id="{{ user.id }}"
+                                    data-banned="{{ user.is_banned | lower }}"
+                                    title="{% if user.is_banned %}解封{% else %}封禁{% endif %}">
+                                <i class="bi bi-{% if user.is_banned %}check-circle{% else %}x-circle{% endif %}"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">暂无用户数据</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="card-footer">
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                    <a class="page-link" href="?page={{ page - 1 }}&search={{ search }}&status={{ status }}">上一页</a>
+                </li>
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == page or (p <= 3) or (p >= total_pages - 2) or (p >= page - 1 and p <= page + 1) %}
+                    <li class="page-item {% if p == page %}active{% endif %}">
+                        <a class="page-link" href="?page={{ p }}&search={{ search }}&status={{ status }}">{{ p }}</a>
+                    </li>
+                    {% elif p == 4 or p == total_pages - 3 %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                    <a class="page-link" href="?page={{ page + 1 }}&search={{ search }}&status={{ status }}">下一页</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Ban/Unban Modal -->
+<div class="modal fade" id="banModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="banModalTitle">封禁用户</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="banUserId">
+                <input type="hidden" id="banAction">
+                <div class="mb-3">
+                    <label class="form-label">原因（可选）</label>
+                    <textarea class="form-control" id="banReason" rows="3" placeholder="请输入封禁原因..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="banConfirm">确认</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.btn-ban').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const userId = btn.dataset.userId;
+        const isBanned = btn.dataset.banned === 'true';
+        const modal = document.getElementById('banModal');
+        document.getElementById('banModalTitle').textContent = isBanned ? '解封用户' : '封禁用户';
+        document.getElementById('banUserId').value = userId;
+        document.getElementById('banAction').value = isBanned ? 'unban' : 'ban';
+        document.getElementById('banReason').value = '';
+        const confirmBtn = document.getElementById('banConfirm');
+        confirmBtn.className = isBanned ? 'btn btn-success' : 'btn btn-danger';
+        confirmBtn.textContent = isBanned ? '确认解封' : '确认封禁';
+        new bootstrap.Modal(modal).show();
+    });
+});
+
+document.getElementById('banConfirm').addEventListener('click', async () => {
+    const userId = document.getElementById('banUserId').value;
+    const action = document.getElementById('banAction').value;
+    const reason = document.getElementById('banReason').value;
+    const isBan = action === 'ban';
+
+    try {
+        const resp = await fetch(`/users/api/${userId}/ban`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({is_banned: isBan, ban_reason: isBan ? reason : null}),
+        });
+        if (resp.ok) {
+            location.reload();
+        } else {
+            const err = await resp.json();
+            alert(err.detail || '操作失败');
+        }
+    } catch (e) {
+        alert('请求失败: ' + e.message);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% set active = "orders" %}
+{% block title %}{{ order.hash }} — Orders{% endblock %}
+
+{% block content %}
+<a class="back-link" href="/orders">← Back to orders</a>
+
+<header>
+    <h1>Order <code>{{ order.hash }}</code></h1>
+    <p class="subtitle">
+        Status: <span
+            class="badge badge-{{ 'ok' if order.status == 'success' else 'warn' if order.status == 'pending' else 'bad' }}">{{
+            order.status }}</span>
+        {% if order.customer_id %}
+        · Customer: <a href="/customers/{{ order.customer_id }}">{{ order.first_name or order.username or
+            order.customer_id }}</a>
+        {% endif %}
+    </p>
+</header>
+
+<!-- Action buttons -->
+<div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
+    {% if order.customer_id %}
+    <form method="post" action="/orders/{{ order.hash }}/notify" style="display:inline;">
+        <button type="submit" class="btn btn-primary">📤 Push status to customer</button>
+    </form>
+    {% endif %}
+    <button onclick="document.getElementById('edit-panel').style.display='block'; this.style.display='none';"
+        class="btn btn-outline">✏️ Edit all fields</button>
+    <form method="post" action="/orders/{{ order.hash }}/delete" style="display:inline;"
+        onsubmit="return confirm('Are you sure you want to DELETE this order? This cannot be undone!');">
+        <button type="submit" class="btn" style="background:#e53935;color:#fff;">🗑️ Delete order</button>
+    </form>
+</div>
+
+<!-- Order details (read-only view) -->
+<section class="panel" id="detail-view">
+    <h2>Order details</h2>
+    <table>
+        <tr>
+            <th style="width:150px;">Hash</th>
+            <td><code>{{ order.hash }}</code></td>
+        </tr>
+        <tr>
+            <th>Amount</th>
+            <td>{{ order.amount or '-' }} {{ order.currency or '' }}</td>
+        </tr>
+        <tr>
+            <th>Status</th>
+            <td><span
+                    class="badge badge-{{ 'ok' if order.status == 'success' else 'warn' if order.status == 'pending' else 'bad' }}">{{
+                    order.status }}</span></td>
+        </tr>
+        <tr>
+            <th>Bank</th>
+            <td>{{ order.bank or '-' }}</td>
+        </tr>
+        <tr>
+            <th>Receiver</th>
+            <td>{{ order.receiver or '-' }}</td>
+        </tr>
+        <tr>
+            <th>TX Date</th>
+            <td>{{ order.tx_date or '-' }}</td>
+        </tr>
+        <tr>
+            <th>TX ID</th>
+            <td>{{ order.tx_id or '-' }}</td>
+        </tr>
+        <tr>
+            <th>Customer ID</th>
+            <td>{{ order.customer_id or '-' }}</td>
+        </tr>
+        <tr>
+            <th>សំគាល់</th>
+            <td style="color:#e74c3c; font-weight:600;">{{ order.notes or '-' }}</td>
+        </tr>
+        <tr>
+            <th>Created</th>
+            <td>{{ order.created_at }}</td>
+        </tr>
+        <tr>
+            <th>Updated</th>
+            <td>{{ order.updated_at }}</td>
+        </tr>
+    </table>
+</section>
+
+<!-- Edit panel (hidden by default) -->
+<section class="panel" id="edit-panel" style="display:none;">
+    <h2>✏️ Edit order</h2>
+    <form method="post" action="/orders/{{ order.hash }}/edit">
+        <div class="flex gap-2">
+            <label style="flex:1;">
+                <span>Amount</span>
+                <input type="text" name="amount" value="{{ order.amount or '' }}" placeholder="e.g. 220.00">
+            </label>
+            <label style="flex:1;">
+                <span>Currency</span>
+                <input type="text" name="currency" value="{{ order.currency or 'USD' }}">
+            </label>
+            <label style="flex:1;">
+                <span>Status</span>
+                <select name="status_val">
+                    <option value="pending" {% if order.status=='pending' %}selected{% endif %}>Pending</option>
+                    <option value="success" {% if order.status=='success' %}selected{% endif %}>Success</option>
+                    <option value="failed" {% if order.status=='failed' %}selected{% endif %}>Failed</option>
+                    <option value="unknown" {% if order.status=='unknown' %}selected{% endif %}>Unknown</option>
+                </select>
+            </label>
+        </div>
+        <div class="flex gap-2">
+            <label style="flex:1;">
+                <span>Bank</span>
+                <input type="text" name="bank" value="{{ order.bank or '' }}" placeholder="ACLEDA / ABA / Wing ...">
+            </label>
+            <label style="flex:1;">
+                <span>Receiver</span>
+                <input type="text" name="receiver" value="{{ order.receiver or '' }}" placeholder="Receiver name">
+            </label>
+            <label style="flex:1;">
+                <span>Customer ID</span>
+                <input type="text" name="customer_id" value="{{ order.customer_id or '' }}" placeholder="Telegram ID">
+            </label>
+        </div>
+        <div class="flex gap-2">
+            <label style="flex:1;">
+                <span>TX Date</span>
+                <input type="text" name="tx_date" value="{{ order.tx_date or '' }}"
+                    placeholder="31-07-2026 12:56:50 PM">
+            </label>
+            <label style="flex:1;">
+                <span>TX ID</span>
+                <input type="text" name="tx_id" value="{{ order.tx_id or '' }}" placeholder="Transaction ID">
+            </label>
+        </div>
+        <div class="flex gap-2">
+            <label style="flex:1;">
+                <span>Notes</span>
+                <input type="text" name="notes" value="{{ order.notes or '' }}" placeholder="Internal notes...">
+            </label>
+        </div>
+        <div class="flex gap-2" style="margin-top:12px;">
+            <button type="submit" class="btn btn-primary">💾 Save changes</button>
+            <button type="button" class="btn btn-outline"
+                onclick="document.getElementById('edit-panel').style.display='none';">Cancel</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

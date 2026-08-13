@@ -1,0 +1,26 @@
+[Unit]
+Description=TGAdmin (FastAPI) service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tgadmin
+Group=tgadmin
+WorkingDirectory=/opt/tgadmin
+EnvironmentFile=/etc/default/tgadmin
+# Ensure PYTHONPATH points to the app directory (fallback to /opt/tgadmin)
+Environment=PYTHONPATH=/opt/tgadmin
+# Use uvicorn from virtualenv for production (more control than -m app.main)
+ExecStart=/opt/tgadmin/.venv/bin/uvicorn app.main:app \
+  --host ${TGADMIN_HOST:-127.0.0.1} \
+  --port ${TGADMIN_PORT:-8000} \
+  --root-path ${TGADMIN_ROOT_PATH:-} \
+  --workers ${TGADMIN_WORKERS:-2} \
+  --log-level info
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

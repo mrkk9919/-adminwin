@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}KYC Queue — Wing Bank Admin{% endblock %}
+{% block content %}
+<header>
+    <h1>KYC Verification Queue</h1>
+    <p class="subtitle">{{ total }} records</p>
+</header>
+
+<!-- Status tabs -->
+<div style="display:flex; gap:8px; margin-bottom:20px;">
+    <a href="/kyc" class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline{% endif %}">All</a>
+    <a href="/kyc?status=pending" class="btn btn-sm {% if status_filter == 'pending' %}btn-primary{% else %}btn-outline{% endif %}">Pending</a>
+    <a href="/kyc?status=approved" class="btn btn-sm {% if status_filter == 'approved' %}btn-primary{% else %}btn-outline{% endif %}">Approved</a>
+    <a href="/kyc?status=rejected" class="btn btn-sm {% if status_filter == 'rejected' %}btn-primary{% else %}btn-outline{% endif %}">Rejected</a>
+</div>
+
+<div class="panel">
+    {% if records %}
+    <table>
+        <thead>
+            <tr><th>Customer</th><th>Document</th><th>Submitted</th><th>Status</th><th>Reviewed By</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for k in records %}
+            <tr>
+                <td>
+                    <a href="/customers/{{ k.customer_id }}">{{ k.first_name or '' }} {{ k.last_name or '' }}</a>
+                    <br><span class="text-muted text-sm">{{ k.username or k.phone or '' }}</span>
+                </td>
+                <td><span class="badge badge-unknown">{{ k.document_type | replace('_', ' ') }}</span></td>
+                <td class="text-sm">{{ k.submitted_at[:16] }}</td>
+                <td><span class="badge badge-{% if k.status == 'approved' %}success{% elif k.status == 'rejected' %}failed{% else %}pending{% endif %}">{{ k.status }}</span></td>
+                <td class="text-muted text-sm">{{ k.reviewed_by or '—' }}</td>
+                <td><a href="/kyc/{{ k.id }}" class="btn btn-outline btn-sm">Review</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No KYC records found.</p>
+    {% endif %}
+</div>
+{% endblock %}

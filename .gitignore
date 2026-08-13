@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# PID files
+*.pid
+
+# Logs
+*.log
+logs/
+
+# Deploy packages
+*.zip
+*.tar.gz
+*.tgz
+deploy-package/
+.tmp_deploy/
+
+# IDE
+.idea/
+.vscode/
+.junie/
+.qoder/
+.zencoder/
+.playwright-mcp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Temp
+zi0bCYXj
+frontend.log

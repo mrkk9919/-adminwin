@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Transactions — Wing Bank Admin{% endblock %}
+{% block content %}
+<header>
+    <div class="flex-between">
+        <div>
+            <h1>Transactions</h1>
+            <p class="subtitle">{{ total }} transactions</p>
+        </div>
+        <a href="/transactions/create" class="btn btn-primary">+ New Transaction</a>
+    </div>
+</header>
+
+<form class="search-bar" method="get" action="/transactions">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search description or reference...">
+    <select name="tx_type" style="width:130px">
+        <option value="">All Types</option>
+        <option value="transfer" {% if tx_type == 'transfer' %}selected{% endif %}>Transfer</option>
+        <option value="deposit" {% if tx_type == 'deposit' %}selected{% endif %}>Deposit</option>
+        <option value="withdrawal" {% if tx_type == 'withdrawal' %}selected{% endif %}>Withdrawal</option>
+        <option value="exchange" {% if tx_type == 'exchange' %}selected{% endif %}>Exchange</option>
+    </select>
+    <select name="status" style="width:130px">
+        <option value="">All Status</option>
+        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+        <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+        <option value="reversed" {% if status_filter == 'reversed' %}selected{% endif %}>Reversed</option>
+    </select>
+    <select name="currency" style="width:110px">
+        <option value="">All Currency</option>
+        <option value="KHR" {% if currency == 'KHR' %}selected{% endif %}>KHR</option>
+        <option value="USD" {% if currency == 'USD' %}selected{% endif %}>USD</option>
+    </select>
+    <button class="btn btn-primary" type="submit">Filter</button>
+</form>
+
+<div class="panel">
+    {% if transactions %}
+    <table>
+        <thead>
+            <tr><th>Type</th><th>Amount</th><th>From</th><th>To</th><th>Description</th><th>Status</th><th>Date</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for tx in transactions %}
+            <tr>
+                <td><span class="badge badge-{% if tx.type == 'transfer' %}vip{% elif tx.type == 'deposit' %}success{% elif tx.type == 'withdrawal' %}pending{% else %}unknown{% endif %}">{{ tx.type }}</span></td>
+                <td><strong>{% if tx.currency == 'KHR' %}{{ "{:,.0f}".format(tx.amount) }} KHR{% else %}{{ "{:,.2f}".format(tx.amount / 100) }} USD{% endif %}</strong></td>
+                <td>{{ tx.from_name or '—' }}</td>
+                <td>{{ tx.to_name or tx.external_to or '—' }}</td>
+                <td class="text-sm">{{ tx.description or '—' }}</td>
+                <td><span class="badge badge-{{ tx.status }}">{{ tx.status }}</span></td>
+                <td class="text-muted text-sm">{{ tx.created_at[:16] }}</td>
+                <td><a href="/transactions/{{ tx.id }}" class="btn btn-outline btn-sm">Detail</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if pages > 1 %}
+    <div class="flex-between mt-4">
+        {% if page > 1 %}<a href="?q={{ q }}&tx_type={{ tx_type }}&status={{ status_filter }}&currency={{ currency }}&page={{ page - 1 }}" class="btn btn-outline btn-sm">Prev</a>{% endif %}
+        <span class="text-muted text-sm">Page {{ page }} / {{ pages }}</span>
+        {% if page < pages %}<a href="?q={{ q }}&tx_type={{ tx_type }}&status={{ status_filter }}&currency={{ currency }}&page={{ page + 1 }}" class="btn btn-outline btn-sm">Next</a>{% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="empty">No transactions found.</p>
+    {% endif %}
+</div>
+{% endblock %}

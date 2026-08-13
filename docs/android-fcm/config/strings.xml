@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">Wing Bank</string>
+
+    <!-- ====== 通知渠道名称 ====== -->
+    <string name="channel_transactions">交易通知</string>
+    <string name="channel_transactions_desc">转账、收款、余额变动等交易相关通知</string>
+
+    <string name="channel_security">安全提醒</string>
+    <string name="channel_security_desc">登录提醒、异常操作、安全验证等安全相关通知</string>
+
+    <string name="channel_promotions">活动优惠</string>
+    <string name="channel_promotions_desc">促销活动、优惠信息、新功能上线等营销通知</string>
+
+    <string name="channel_default">其他通知</string>
+    <string name="channel_default_desc">其他系统通知</string>
+
+    <!-- ====== 推送相关文案 ====== -->
+    <string name="push_transfer_received_title">收到转账</string>
+    <string name="push_transfer_received_body">您收到 %1$s %2$s 转账，付款人：%3$s</string>
+
+    <string name="push_transfer_sent_title">转账成功</string>
+    <string name="push_transfer_sent_body">您已向 %3$s 转账 %1$s %2$s</string>
+
+    <string name="push_balance_update_title">余额更新</string>
+    <string name="push_balance_update_body">您的账户余额已更新</string>
+
+    <string name="push_security_alert_title">安全提醒</string>
+    <string name="push_security_alert_body">检测到异常登录，请确认是否为本人操作</string>
+
+    <string name="push_test_title">测试通知</string>
+    <string name="push_test_body">这是一条测试推送消息</string>
+</resources>

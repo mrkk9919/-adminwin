@@ -1,0 +1,2 @@
+-- Backup of tgbot/migrations/006_create_bots_table.sql
+-- Archived before migration file consolidation into admin backend.

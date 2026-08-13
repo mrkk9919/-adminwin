@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ====== 推送相关权限 ====== -->
+    <!-- 通知权限（Android 13+） -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- 网络权限 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 唤醒锁权限（可选，用于确保推送到达） -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- 振动权限 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <application
+        android:name=".WingBankApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.WingBank">
+
+        <!-- ====== Main Activity ====== -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ====== 交易详情页（通知点击跳转） ====== -->
+        <activity
+            android:name=".ui.transaction.TransactionDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- ====== Firebase Messaging Service ====== -->
+        <service
+            android:name=".fcm.WingFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- ====== 默认通知渠道配置 ====== -->
+        <!-- 默认通知渠道 ID -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="wingbank_default" />
+
+        <!-- 默认通知图标 -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+
+        <!-- 默认通知颜色 -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/primary" />
+
+        <!-- ====== Firebase Init ====== -->
+        <!-- Firebase 会自动初始化，不需要额外配置 -->
+
+    </application>
+
+</manifest>

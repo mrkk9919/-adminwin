@@ -1,0 +1,3 @@
+./capi_darwin_amd64.go
+./more_darwin_amd64.go
+./signal_darwin_amd64.go

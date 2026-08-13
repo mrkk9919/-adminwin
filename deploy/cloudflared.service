@@ -1,0 +1,20 @@
+[Unit]
+Description=Cloudflare Tunnel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cloudflared
+Group=cloudflared
+WorkingDirectory=/var/lib/cloudflared
+Environment=CLOUDFLARED_BIN=/usr/bin/cloudflared
+Environment=CLOUDFLARED_CONFIG=/etc/cloudflared/config.yml
+EnvironmentFile=-/etc/default/cloudflared
+ExecStart=${CLOUDFLARED_BIN} tunnel run --config ${CLOUDFLARED_CONFIG}
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

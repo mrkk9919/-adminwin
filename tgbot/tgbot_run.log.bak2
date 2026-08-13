@@ -1,0 +1,19 @@
+2026/08/04 19:40:05 [db] migration applied: 001_admin_tables.sql
+2026/08/04 19:40:05 [db] migration applied: 002_banking_tables.sql
+2026/08/04 19:40:05 [db] migration already applied: 003_add_push_tokens.sql (skipping)
+2026/08/04 19:40:05 [db] migration already applied: 004_add_bot_name.sql (skipping)
+2026/08/04 19:40:05 [db] migration already applied: 005_add_external_to.sql (skipping)
+2026/08/04 19:40:05 [db] migration applied: 006_create_bots_table.sql
+2026/08/04 19:40:05 [db] migration applied: 007_create_notification_groups.sql
+2026/08/04 19:40:05 [push] Push service initialized with base URL: http://localhost:8082
+2026/08/04 19:40:07 ABA BANK bot (aba-bank) started in chat-only mode
+2026/08/04 19:40:07 Bot started. Press Ctrl+C to stop.
+2026/08/04 20:11:14 [heartbeat]: TouchHeartbeat(wing-bank): database is locked (5) (SQLITE_BUSY)
+2026/08/04 20:14:44 [heartbeat]: TouchHeartbeat(wing-bank): database is locked (5) (SQLITE_BUSY)
+2026/08/04 20:14:51 [heartbeat]: TouchHeartbeat(aba-bank): database is locked (5) (SQLITE_BUSY)
+2026/08/04 20:17:14 [heartbeat]: TouchHeartbeat(wing-bank): database is locked (5) (SQLITE_BUSY)
+2026/08/04 21:54:46 [heartbeat]: TouchHeartbeat(wing-bank): database is locked (5) (SQLITE_BUSY)
+2026/08/04 21:54:54 [heartbeat]: TouchHeartbeat(aba-bank): database is locked (5) (SQLITE_BUSY)
+2026/08/04 22:28:59 [heartbeat]: TouchHeartbeat(aba-bank): database is locked (5) (SQLITE_BUSY)
+2026/08/04 22:35:48 [heartbeat]: TouchHeartbeat(wing-bank): database is locked (5) (SQLITE_BUSY)
+2026/08/04 22:35:54 [heartbeat]: TouchHeartbeat(aba-bank): database is locked (5) (SQLITE_BUSY)

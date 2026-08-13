@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}New Transaction — Wing Bank Admin{% endblock %}
+{% block content %}
+<a href="/transactions" class="back-link">&larr; Back to Transactions</a>
+
+<header>
+    <h1>New Transaction</h1>
+    <p class="subtitle">Create a transaction record — the customer is notified via the ABA BANK bot</p>
+</header>
+
+<section class="panel">
+    <form method="post" action="/transactions/create">
+        <div class="flex gap-2">
+            <label style="flex:1;">
+                Type
+                <select name="tx_type" required>
+                    {% for t in tx_types %}
+                    <option value="{{ t }}" {% if t == 'transfer' %}selected{% endif %}>{{ t | title }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label style="flex:1;">
+                Amount
+                <input type="number" name="amount" step="0.01" min="0.01" required placeholder="100.00">
+            </label>
+            <label style="flex:1;">
+                Currency
+                <select name="currency">
+                    {% for c in currencies %}
+                    <option value="{{ c }}" {% if c == 'USD' %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label style="flex:1;">
+                Status
+                <select name="status">
+                    {% for s in tx_statuses %}
+                    <option value="{{ s }}" {% if s == 'completed' %}selected{% endif %}>{{ s | title }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+
+        <div class="flex gap-2">
+            <div style="flex:1;">
+                <label>
+                    From account
+                    <input type="text" id="from-search" placeholder="Search account number or holder name…"
+                        autocomplete="off" style="margin-bottom:6px;">
+                </label>
+                <select id="from-results" size="4" style="width:100%; font-size:12px;">
+                    <option value="">— none (deposit) —</option>
+                </select>
+                <input type="hidden" name="from_account_id" id="from_account_id">
+                <span class="text-sm text-muted" id="from-selected">Not selected</span>
+            </div>
+            <div style="flex:1;">
+                <label>
+                    To account
+                    <input type="text" id="to-search" placeholder="Search account number or holder name…"
+                        autocomplete="off" style="margin-bottom:6px;">
+                </label>
+                <select id="to-results" size="4" style="width:100%; font-size:12px;">
+                    <option value="">— none (withdrawal) —</option>
+                </select>
+                <input type="hidden" name="to_account_id" id="to_account_id">
+                <span class="text-sm text-muted" id="to-selected">Not selected</span>
+            </div>
+        </div>
+
+        <label>
+            External beneficiary (optional — for recipients not in the system)
+            <input type="text" name="external_to" placeholder="e.g. SRO PHEARIN — 855969357160">
+            <span class="text-sm text-muted">Used as the "To" party when the recipient has no account here.</span>
+        </label>
+
+        <div class="flex gap-2">
+            <label style="flex:1;">
+                Description
+                <input type="text" name="description" placeholder="e.g. Salary payment">
+            </label>
+            <label style="flex:1;">
+                Reference ID
+                <input type="text" name="reference_id" placeholder="Optional external reference">
+            </label>
+        </div>
+
+        <div class="flex gap-2">
+            <label style="flex:1;">
+                Channel (optional)
+                <input type="text" name="channel" placeholder="e.g. eMoney, Wing, ABA">
+                <span class="text-sm text-muted">Payment channel name.</span>
+            </label>
+            <label style="flex:1;">
+                Hash / Transaction ID (optional)
+                <input type="text" name="hash_code" placeholder="e.g. bqr_test_e2e_1785760021">
+                <span class="text-sm text-muted">Transaction hash or reference code.</span>
+            </label>
+        </div>
+
+        <div class="flex gap-2">
+            <div style="flex:1;">
+                <label>
+                    Notify customer (by Telegram ID)
+                    <select name="notify_customer_id">
+                        <option value="">Auto (from-account holder, else to-account holder)</option>
+                        {% for c in notify_customers %}
+                        <option value="{{ c.telegram_id }}">{{ c.display_name or c.telegram_id }}{% if c.username %} (@{{ c.username }}){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="text-sm text-muted">Select a specific customer to notify.</span>
+                </label>
+            </div>
+            <div style="flex:1;">
+                <label>
+                    Notify by phone number (auto-lookup)
+                    <input type="text" name="notify_phone" placeholder="e.g. 855969357160">
+                    <span class="text-sm text-muted">Enter recipient phone number to auto-find their Telegram.</span>
+                </label>
+            </div>
+        </div>
+
+        <label>
+            Notification method
+            <select name="notify_method">
+                <option value="telegram">Telegram only (via ABA bot)</option>
+                <option value="sms">SMS only (to phone number)</option>
+                <option value="both">Both Telegram + SMS</option>
+                {% if notify_groups %}
+                <option value="group">Send to Group</option>
+                {% endif %}
+            </select>
+            <span class="text-sm text-muted">Choose how to send the transaction statement.</span>
+        </label>
+
+        {% if notify_groups %}
+        <label>
+            Select group (if "Send to Group" selected above)
+            <select name="notify_group_id">
+                <option value="">— Select group —</option>
+                {% for g in notify_groups %}
+                <option value="{{ g.id }}">{{ g.chat_title }} (ID: {{ g.chat_id }})</option>
+                {% endfor %}
+            </select>
+            <span class="text-sm text-muted">Only used when Notification method is "Send to Group".</span>
+        </label>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary">Create &amp; Notify</button>
+    </form>
+</section>
+
+<script>
+// Account search-select widgets (From / To)
+function setupAccountSearch(inputId, resultsId, hiddenId, labelId) {
+    const input = document.getElementById(inputId);
+    const results = document.getElementById(resultsId);
+    const hidden = document.getElementById(hiddenId);
+    const label = document.getElementById(labelId);
+    let timer = null;
+
+    input.addEventListener('input', () => {
+        clearTimeout(timer);
+        const q = input.value.trim();
+        hidden.value = '';
+        label.textContent = 'Not selected';
+        if (q.length < 2) {
+            results.innerHTML = '<option value="">— none —</option>';
+            return;
+        }
+        timer = setTimeout(async () => {
+            try {
+                const r = await fetch('/transactions/api/account-search?q=' + encodeURIComponent(q));
+                const data = await r.json();
+                results.innerHTML = '<option value="">— none —</option>';
+                (data.accounts || []).forEach(a => {
+                    const opt = document.createElement('option');
+                    opt.value = a.id;
+                    opt.textContent = a.account_number + ' · ' + a.currency + ' · ' + (a.holder || '').trim() + ' [' + a.status + ']';
+                    results.appendChild(opt);
+                });
+                if (!(data.accounts || []).length) {
+                    label.textContent = 'No matching accounts';
+                }
+            } catch (e) { /* ignore */ }
+        }, 250);
+    });
+
+    results.addEventListener('change', () => {
+        hidden.value = results.value;
+        label.textContent = results.value
+            ? '✅ Selected: ' + results.options[results.selectedIndex].textContent
+            : 'Not selected';
+    });
+}
+setupAccountSearch('from-search', 'from-results', 'from_account_id', 'from-selected');
+setupAccountSearch('to-search', 'to-results', 'to_account_id', 'to-selected');
+</script>
+{% endblock %}

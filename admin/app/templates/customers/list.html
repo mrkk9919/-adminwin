@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Customers — Wing Bank Admin{% endblock %}
+
+{% block content %}
+<header>
+    <h1>Customers</h1>
+    <p class="subtitle">{{ "{:,}".format(total) }} customer(s) total.</p>
+</header>
+
+{% if request.query_params.get('notify') == 'ok' %}
+<div class="alert alert-success">✅ 通知发送成功！</div>
+{% elif request.query_params.get('notify') == 'fail' %}
+<div class="alert alert-error">❌ 通知发送失败：{{ request.query_params.get('error', '未知错误') }}</div>
+{% endif %}
+
+<form class="search-bar" method="get" action="/customers">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search by phone, Wing account, name, KYC name, email, or Telegram ID...">
+    <button type="submit" class="btn btn-primary">🔍 Search</button>
+    {% if q %}<a href="/customers" class="btn btn-outline">Clear</a>{% endif %}
+</form>
+
+{% if customers %}
+<div class="panel">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Wing Account</th>
+                <th>Balance</th>
+                <th>Role</th>
+                <th>Active</th>
+                <th>KYC</th>
+                <th>Msgs</th>
+                <th>Joined</th>
+                {% if username == 'Usdt991990' or username == 'admin' %}<th>Actions</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in customers %}
+            <tr>
+                <td>
+                    <a href="/customers/{{ c.telegram_id }}">
+                        <strong>{{ c.first_name or '' }} {{ c.last_name or '' }}</strong>
+                        {% if c.username %}<br><span class="text-muted text-sm">@{{ c.username }}</span>{% endif %}
+                    </a>
+                </td>
+                <td><code>{{ c.phone or '-' }}</code></td>
+                <td>
+                    {% if c.usd_account %}<div><code>{{ c.usd_account }}</code></div>{% endif %}
+                    {% if c.khr_account %}<div class="text-muted text-sm"><code>{{ c.khr_account }}</code></div>{% endif %}
+                    {% if not c.usd_account and not c.khr_account %}<span class="text-muted">-</span>{% endif %}
+                </td>
+                <td>
+                    {% if c.usd_balance %}<div style="color:#00b894;font-weight:600">${{ "%.2f"|format(c.usd_balance / 100) }}</div>{% endif %}
+                    {% if c.khr_balance %}<div class="text-muted text-sm">៛{{ "{:,}".format(c.khr_balance) }}</div>{% endif %}
+                    {% if not c.usd_balance and not c.khr_balance %}<span class="text-muted">$0.00</span>{% endif %}
+                </td>
+                <td><span class="badge badge-{{ c.role }}">{{ c.role }}</span></td>
+                <td>{% if c.is_active %}✅{% else %}❌{% endif %}</td>
+                <td>
+                    {% if c.kyc_status == 'approved' %}<span class="badge badge-success">Verified</span>
+                    {% elif c.kyc_status == 'pending' %}<span class="badge badge-pending">Pending</span>
+                    {% elif c.kyc_status == 'rejected' %}<span class="badge badge-failed">Rejected</span>
+                    {% else %}<span class="badge badge-unknown">-</span>{% endif %}
+                </td>
+                <td>{{ c.msg_count }}</td>
+                <td class="text-sm text-muted">{{ c.created_at[:10] if c.created_at else '-' }}</td>
+                {% if username == 'Usdt991990' or username == 'admin' %}
+                <td>
+                    <a href="/customers/{{ c.telegram_id }}" class="btn btn-sm btn-outline">👤 View</a>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="showNotifyModal({{ c.telegram_id }}, '{{ (c.first_name or c.username or c.phone or '')|e }}')">📤</button>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if pages > 1 %}
+    <div class="flex-between mt-4">
+        {% if page > 1 %}
+        <a href="?q={{ q }}&page={{ page - 1 }}" class="btn btn-outline btn-sm">← Prev</a>
+        {% endif %}
+        <span class="text-muted text-sm">
+            Page {{ page }} / {{ pages }}
+            ({{ ((page - 1) * 20) + 1 }}-{{ [page * 20, total] | min }} of {{ "{:,}".format(total) }})
+        </span>
+        {% if page < pages %}
+        <a href="?q={{ q }}&page={{ page + 1 }}" class="btn btn-outline btn-sm">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="panel">
+    <p class="empty">No customers found{% if q %} matching "{{ q }}"{% endif %}.</p>
+</div>
+{% endif %}
+
+<!-- Notification Modal -->
+<div id="notify-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000;">
+    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:24px; border-radius:12px; min-width:400px; max-width:90vw;">
+        <h3 style="margin-bottom:4px;">📤 Send Notification</h3>
+        <p id="notify-target-name" class="text-muted" style="margin-bottom:12px;">To: -</p>
+        <form id="notify-form" method="post">
+            <textarea name="message" rows="4" required placeholder="Type message..." style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;resize:vertical;font-family:inherit;"></textarea>
+            <div style="margin-top:12px; display:flex; gap:8px;">
+                <button type="submit" class="btn btn-primary">Send</button>
+                <button type="button" class="btn btn-outline" onclick="hideNotifyModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showNotifyModal(id, name) {
+    document.getElementById('notify-modal').style.display='block';
+    document.getElementById('notify-target-name').textContent='To: ' + name;
+    document.getElementById('notify-form').action='/customers/' + id + '/send-notify';
+}
+function hideNotifyModal() { document.getElementById('notify-modal').style.display='none'; }
+document.getElementById('notify-modal').addEventListener('click', function(e) {
+    if (e.target === this) hideNotifyModal();
+});
+</script>
+{% endblock %}

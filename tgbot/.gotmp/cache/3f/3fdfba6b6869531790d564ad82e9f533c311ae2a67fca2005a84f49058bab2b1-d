@@ -1,0 +1,7 @@
+./cpu.go
+./cpu_darwin.go
+./cpu_x86.go
+./cpu_x86_darwin.go
+./datacache_x86.go
+./cpu.s
+./cpu_x86.s

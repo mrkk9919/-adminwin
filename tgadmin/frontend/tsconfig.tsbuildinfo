@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/api.ts","./src/bootstrap-bundle.d.ts","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/components/banmodal.tsx","./src/components/botformmodal.tsx","./src/components/layout.tsx","./src/pages/botlist.tsx","./src/pages/dashboard.tsx","./src/pages/userdetail.tsx","./src/pages/userlist.tsx"],"version":"5.9.3"}

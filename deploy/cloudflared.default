@@ -1,0 +1,3 @@
+# Override the default Cloudflare Tunnel binary/config paths if needed.
+CLOUDFLARED_BIN=/usr/bin/cloudflared
+CLOUDFLARED_CONFIG=/etc/cloudflared/config.yml

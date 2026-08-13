@@ -1,0 +1,22 @@
+[Unit]
+Description=TGBot service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tgbot
+Group=tgbot
+WorkingDirectory=/opt/tgbot
+EnvironmentFile=/etc/default/tgbot
+# If the binary accepts a config path, pass it via --config; otherwise keep default
+ExecStart=/opt/tgbot/tgbot --config /etc/tgbot/config.yaml
+Restart=on-failure
+RestartSec=5s
+# Increase file descriptors if bot opens many sockets/files
+LimitNOFILE=65536
+# Optional: set nice or CPU affinity if needed
+# Nice=5
+
+[Install]
+WantedBy=multi-user.target

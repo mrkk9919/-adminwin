@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% set active = "hash_lookup" %}
+{% block title %}Hash Lookup — Wing Bank Admin{% endblock %}
+
+{% block content %}
+<header>
+    <h1>🔍 Hash Lookup</h1>
+    <p class="subtitle">Enter a transaction hash to view transfer status and details.</p>
+</header>
+
+<!-- Search Bar -->
+<div class="panel" style="margin-bottom: 24px; padding: 20px 24px;">
+    <form method="get" action="/orders/hash-lookup" style="display:flex; gap:10px; align-items:flex-end;">
+        <label style="flex:1; margin:0;">
+            <span style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">
+                Transaction Hash
+            </span>
+            <input type="text" name="q" value="{{ q }}" placeholder="Enter hash code, e.g. a5822d81" autofocus
+                style="width:100%; padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:monospace;">
+        </label>
+        <button type="submit" class="btn btn-primary" style="padding:10px 24px; height:42px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            Lookup
+        </button>
+        {% if q %}
+        <a href="/orders/hash-lookup" class="btn btn-outline" style="height:42px; line-height:42px;">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+{% if q and not order %}
+<!-- Not Found -->
+<div class="panel" style="text-align:center; padding:40px;">
+    <div style="font-size:48px; margin-bottom:12px;">❌</div>
+    <h2 style="margin:0 0 8px;">Hash Not Found</h2>
+    <p class="text-muted">
+        No transfer record found for hash <code>{{ q }}</code>.<br>
+        Please verify the hash code and try again.
+    </p>
+</div>
+{% endif %}
+
+{% if order %}
+<!-- Transfer Details -->
+<div class="panel" style="padding:0; overflow:hidden;">
+    <!-- Status Header -->
+    <div
+        style="padding:20px 24px; background: {% if order.status == 'success' %}#e8f5e9{% elif order.status == 'pending' %}#fff8e1{% else %}#fce4ec{% endif %};
+         border-bottom: 3px solid {% if order.status == 'success' %}#4caf50{% elif order.status == 'pending' %}#ff9800{% else %}#e53935{% endif %}">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <span style="font-size:12px; font-weight:600; text-transform:uppercase; color:#666;">Transfer
+                    Status</span>
+                <div style="margin-top:4px;">
+                    <span
+                        class="badge badge-{{ 'ok' if order.status == 'success' else 'warn' if order.status == 'pending' else 'bad' }}"
+                        style="font-size:16px; padding:6px 16px;">
+                        {% if order.status == 'success' %}✅ {{ order.status | upper }}
+                        {% elif order.status == 'pending' %}⏳ {{ order.status | upper }}
+                        {% else %}❌ {{ order.status | upper }}{% endif %}
+                    </span>
+                </div>
+            </div>
+            <div style="text-align:right;">
+                <span style="font-size:12px; color:#666;">Amount</span>
+                <div style="font-size:24px; font-weight:700; color:#333;">
+                    {{ order.amount or '—' }}
+                    <span style="font-size:14px; font-weight:400; color:#888;">{{ order.currency or 'USD' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Table -->
+    <div style="padding:20px 24px;">
+        <table style="width:100%; border-collapse:collapse;">
+            <tr>
+                <th
+                    style="width:160px; text-align:left; padding:10px 12px; color:#666; font-size:13px; border-bottom:1px solid #eee;">
+                    🔖 Hash</th>
+                <td style="padding:10px 12px; border-bottom:1px solid #eee;">
+                    <code
+                        style="font-size:14px; background:#f5f5f5; padding:2px 8px; border-radius:4px;">{{ order.hash }}</code>
+                </td>
+            </tr>
+            <tr>
+                <th
+                    style="text-align:left; padding:10px 12px; color:#666; font-size:13px; border-bottom:1px solid #eee;">
+                    🏦 Bank</th>
+                <td style="padding:10px 12px; border-bottom:1px solid #eee;">{{ order.bank or '—' }}</td>
+            </tr>
+            <tr>
+                <th
+                    style="text-align:left; padding:10px 12px; color:#666; font-size:13px; border-bottom:1px solid #eee;">
+                    👤 Receiver</th>
+                <td style="padding:10px 12px; border-bottom:1px solid #eee;">{{ order.receiver or '—' }}</td>
+            </tr>
+            <tr>
+                <th
+                    style="text-align:left; padding:10px 12px; color:#666; font-size:13px; border-bottom:1px solid #eee;">
+                    📅 TX Date</th>
+                <td style="padding:10px 12px; border-bottom:1px solid #eee;">{{ order.tx_date or '—' }}</td>
+            </tr>
+            <tr>
+                <th
+                    style="text-align:left; padding:10px 12px; color:#666; font-size:13px; border-bottom:1px solid #eee;">
+                    📝 TX ID</th>
+                <td style="padding:10px 12px; border-bottom:1px solid #eee;">
+                    <code>{{ order.tx_id or '—' }}</code>
+                </td>
+            </tr>
+            <tr>
+                <th
+                    style="text-align:left; padding:10px 12px; color:#666; font-size:13px; border-bottom:1px solid #eee;">
+                    👥 Customer</th>
+                <td style="padding:10px 12px; border-bottom:1px solid #eee;">
+                    {% if order.customer_id %}
+                    <a href="/customers/{{ order.customer_id }}">
+                        {{ order.first_name or order.username or order.customer_id }}
+                    </a>
+                    {% if order.username %}<span class="text-muted">@{{ order.username }}</span>{% endif %}
+                    {% else %}
+                    <span class="text-muted">Not linked</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th
+                    style="text-align:left; padding:10px 12px; color:#666; font-size:13px; border-bottom:1px solid #eee;">
+                    📋 Notes</th>
+                <td style="padding:10px 12px; border-bottom:1px solid #eee;">{{ order.notes or '—' }}</td>
+            </tr>
+            <tr>
+                <th
+                    style="text-align:left; padding:10px 12px; color:#666; font-size:13px; border-bottom:1px solid #eee;">
+                    🕐 Created</th>
+                <td style="padding:10px 12px; border-bottom:1px solid #eee;" class="text-muted">{{ order.created_at }}
+                </td>
+            </tr>
+            <tr>
+                <th style="text-align:left; padding:10px 12px; color:#666; font-size:13px;">
+                    🔄 Updated</th>
+                <td style="padding:10px 12px;" class="text-muted">{{ order.updated_at }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Actions -->
+    <div style="padding:16px 24px; background:#fafafa; border-top:1px solid #eee; display:flex; gap:10px;">
+        <a href="/orders/{{ order.hash }}" class="btn btn-outline">View Order Detail →</a>
+        {% if order.customer_id %}
+        <form method="post" action="/orders/{{ order.hash }}/notify" style="display:inline;">
+            <button type="submit" class="btn btn-primary">📤 Push status to customer</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if not q %}
+<!-- Initial State — Show Recent Orders -->
+<div class="panel" style="padding:0;">
+    <div style="padding:16px 24px; border-bottom:1px solid #eee;">
+        <h2 style="margin:0; font-size:15px;">Recent Transfer Orders</h2>
+    </div>
+    {% set recent = recent_orders | default([]) %}
+    {% if recent %}
+    <table>
+        <thead>
+            <tr>
+                <th>Hash</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Bank</th>
+                <th>TX Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for o in recent %}
+            <tr style="cursor:pointer;" onclick="window.location='/orders/hash-lookup?q={{ o.hash }}'">
+                <td><code>{{ o.hash }}</code></td>
+                <td>{{ o.amount or '—' }} {{ o.currency or '' }}</td>
+                <td><span
+                        class="badge badge-{{ 'ok' if o.status == 'success' else 'warn' if o.status == 'pending' else 'bad' }}">{{
+                        o.status }}</span></td>
+                <td>{{ o.bank or '—' }}</td>
+                <td class="text-sm text-muted">{{ o.tx_date or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty" style="padding:24px;">No orders in database yet. Create orders first or enter a hash to look up.
+    </p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

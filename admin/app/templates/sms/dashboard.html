@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% set active = "sms" %}
+{% block title %}SMS OTP — Wing Bank Admin{% endblock %}
+
+{% block content %}
+<header>
+    <h1>📱 SMS OTP</h1>
+    <p class="subtitle">Send OTP codes and manage SMS delivery. Provider: <span class="badge badge-success">{{ provider
+            }}</span></p>
+</header>
+
+<section class="cards">
+    <div class="card">
+        <div class="metric">{{ stats.total }}</div>
+        <div class="label">Total sent</div>
+    </div>
+    <div class="card warn">
+        <div class="metric">{{ stats.failed }}</div>
+        <div class="label">Failed</div>
+    </div>
+    <div class="card">
+        <div class="metric">${{ "%.2f" | format(stats.total_cost_usd) }}</div>
+        <div class="label">Total cost</div>
+    </div>
+    <div class="card">
+        <div class="metric">{{ stats.remaining }} / {{ stats.quota }}</div>
+        <div class="label">Quota remaining</div>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>Send OTP</h2>
+    <form method="post" action="/sms/send">
+        <div class="flex gap-2">
+            <label style="flex:2;">
+                Phone number
+                <input type="tel" name="phone" required placeholder="+855 XX XXX XXXX">
+            </label>
+            <label style="flex:1;">
+                Template
+                <select name="template">
+                    <option value="otp">OTP verification</option>
+                    <option value="custom">Custom code</option>
+                </select>
+            </label>
+            <div style="flex:0; display:flex; align-items:flex-end; padding-bottom:12px;">
+                <button type="submit" class="btn btn-primary">Send OTP</button>
+            </div>
+        </div>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="flex-between">
+        <h2>Recent SMS logs</h2>
+        <a href="/sms/logs" class="btn btn-outline btn-sm">View all logs →</a>
+    </div>
+    {% if logs %}
+    <table>
+        <thead>
+            <tr>
+                <th>Phone</th>
+                <th>OTP</th>
+                <th>Status</th>
+                <th>Provider</th>
+                <th>Cost</th>
+                <th>Message</th>
+                <th>Sent at</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in logs %}
+            <tr>
+                <td>{{ l.phone }}</td>
+                <td><code>{{ l.otp_code or '-' }}</code></td>
+                <td><span class="badge badge-{{ l.status }}">{{ l.status }}</span></td>
+                <td>{{ l.provider }}</td>
+                <td>{{ "%.2f" | format((l.cost_cents or 0) / 100) }}$</td>
+                <td class="text-sm">{{ (l.message or '')[:50] }}</td>
+                <td class="text-sm text-muted">{{ l.created_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No SMS sent yet. Use the form above to send an OTP.</p>
+    {% endif %}
+</section>
+{% endblock %}

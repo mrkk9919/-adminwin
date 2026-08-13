@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="panel">
+    <h1>Notification Groups</h1>
+
+    <p>这里管理用于接收交易通知的 Telegram 群组。</p>
+
+    <div style="margin-bottom: 20px;">
+        <a href="/groups/add" class="btn btn-primary">+ 添加群组</a>
+        <a href="/groups" class="btn" style="margin-left: 8px;">刷新列表</a>
+    </div>
+
+    {% if groups %}
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Chat ID</th>
+                <th>群名称</th>
+                <th>邀请链接</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for g in groups %}
+            <tr>
+                <td><code>{{ g.chat_id }}</code></td>
+                <td>{{ g.chat_title }}</td>
+                <td>
+                    {% if g.invite_link %}
+                    <a href="{{ g.invite_link }}" target="_blank" class="text-sm">🔗 Link</a>
+                    {% else %}
+                    <span class="text-muted text-sm">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if g.is_active %}
+                    <span class="badge badge-success">Active</span>
+                    {% else %}
+                    <span class="badge badge-muted">Inactive</span>
+                    {% endif %}
+                </td>
+                <td class="text-sm text-muted">{{ g.created_at[:16] }}</td>
+                <td>
+                    <form method="post" action="/groups/{{ g.id }}/toggle" style="display: inline;">
+                        <button type="submit" class="btn btn-sm {% if g.is_active %}btn-warning{% else %}btn-success{% endif %}">
+                            {% if g.is_active %}Disable{% else %}Enable{% endif %}
+                        </button>
+                    </form>
+                    <form method="post" action="/groups/{{ g.id }}/delete" style="display: inline; margin-left: 4px;">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete这个 group?')">🗑️</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">尚未配置任何群组。</p>
+    {% endif %}
+</div>
+{% endblock %}

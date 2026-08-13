@@ -1,0 +1,8 @@
+# Cloudflare Pages 配置
+# 部署命令: npm run deploy (或 wrangler pages deploy dist)
+
+name = "tgadmin"
+compatibility_date = "2024-08-01"
+
+# Pages 项目配置
+pages_build_output_dir = "dist"

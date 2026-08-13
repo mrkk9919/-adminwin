@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}KYC #{{ record.id }} — Wing Bank Admin{% endblock %}
+{% block content %}
+<a href="/kyc" class="back-link">&larr; Back to KYC Queue</a>
+
+<header>
+    <div class="flex-between">
+        <div>
+            <h1>KYC Record #{{ record.id }}</h1>
+            <p class="subtitle">{{ record.first_name or '' }} {{ record.last_name or '' }} — {{ record.document_type | replace('_', ' ') | title }}</p>
+        </div>
+        <span class="badge badge-{% if record.status == 'approved' %}success{% elif record.status == 'rejected' %}failed{% else %}pending{% endif %}" style="font-size:14px;padding:6px 16px;">{{ record.status | upper }}</span>
+    </div>
+</header>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+    <div class="panel">
+        <h2>KYC Information</h2>
+        <table>
+            <tr><td class="text-muted">Full Name</td><td>{{ record.full_name or '—' }}</td></tr>
+            <tr><td class="text-muted">Document Type</td><td>{{ record.document_type | replace('_', ' ') | title }}</td></tr>
+            <tr><td class="text-muted">Document Number</td><td>{{ record.document_number or '—' }}</td></tr>
+            <tr><td class="text-muted">Date of Birth</td><td>{{ record.date_of_birth or '—' }}</td></tr>
+            <tr><td class="text-muted">Address</td><td>{{ record.address or '—' }}</td></tr>
+            <tr><td class="text-muted">Submitted</td><td>{{ record.submitted_at }}</td></tr>
+            {% if record.reviewed_at %}
+            <tr><td class="text-muted">Reviewed</td><td>{{ record.reviewed_at }} by {{ record.reviewed_by }}</td></tr>
+            {% endif %}
+            {% if record.rejection_reason %}
+            <tr><td class="text-muted">Rejection Reason</td><td style="color:var(--wing-red)">{{ record.rejection_reason }}</td></tr>
+            {% endif %}
+        </table>
+    </div>
+    <div class="panel">
+        <h2>Customer</h2>
+        <table>
+            <tr><td class="text-muted">Name</td><td><a href="/customers/{{ record.customer_id }}">{{ record.first_name or '' }} {{ record.last_name or '' }}</a></td></tr>
+            <tr><td class="text-muted">Username</td><td>{{ record.username or '—' }}</td></tr>
+            <tr><td class="text-muted">Phone</td><td>{{ record.phone or '—' }}</td></tr>
+            <tr><td class="text-muted">Email</td><td>{{ record.email or '—' }}</td></tr>
+        </table>
+    </div>
+</div>
+
+{% if record.status == 'pending' %}
+<div class="panel" style="border-left:4px solid var(--wing-blue);">
+    <h2>Review Actions</h2>
+    <div style="display:flex; gap:16px; align-items:flex-start;">
+        <form method="post" action="/kyc/{{ record.id }}/approve">
+            <input type="hidden" name="reviewer" value="{{ username }}">
+            <button class="btn btn-success" type="submit">Approve KYC</button>
+        </form>
+        <form method="post" action="/kyc/{{ record.id }}/reject" id="rejectForm">
+            <input type="hidden" name="reviewer" value="{{ username }}">
+            <div style="display:flex; gap:8px; align-items:flex-end;">
+                <label style="margin:0;">
+                    Rejection Reason
+                    <input type="text" name="reason" required placeholder="e.g. Document unclear" style="width:250px;">
+                </label>
+                <button class="btn btn-danger" type="submit">Reject</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,10 @@
+# import config
+packagefile gopkg.in/telebot.v3=/Users/macbookpro/Library/Caches/go-build/1a/1a52648c06e49ef3a1e17fb38e09357257b80c406b7ad16e7cdad194ef5114b9-d
+packagefile log=/Users/macbookpro/Library/Caches/go-build/8d/8deb10e03fc5c49795fdf2cc5d35729732aac05d549d964c70dbec29cb8e2c74-d
+packagefile os=/Users/macbookpro/Library/Caches/go-build/7e/7eaff53851aa894a71f5439e461c19043fc227c30d7d9425f3068cf2aa343da8-d
+packagefile os/signal=/Users/macbookpro/Library/Caches/go-build/c2/c209c42dc767fc14a2bc23eeff7f0acc6494d59ac838d2ce8306b53074ee7975-d
+packagefile syscall=/Users/macbookpro/Library/Caches/go-build/29/29c8e68158ef563ec3774fd0a66facd14ee656260652b3bb4a5a00bffbc3ecd3-d
+packagefile tgbot/config=/Users/macbookpro/Library/Caches/go-build/be/be8d351d1534c4710d5a76ef119bb61bfdd0b5827779893a358ff4abc622cdd6-d
+packagefile tgbot/handlers=/Users/macbookpro/Library/Caches/go-build/9f/9f8eec0507205403a815cbcb2f27bce627dab3d5a2316675fee95131199327e5-d
+packagefile tgbot/middleware=/Users/macbookpro/Library/Caches/go-build/b5/b52dfa192f01f2b9fcdb86132c48da23c225c0296e5150c709eeb6a660ab6c3c-d
+packagefile runtime=/Users/macbookpro/Library/Caches/go-build/68/684e2d4acb16c59878aec2c101c63dc0b6d201ac5682fae357cfb3fae9513a62-d

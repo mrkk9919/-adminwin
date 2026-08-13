@@ -1,0 +1,2 @@
+-- Backup of tgbot/migrations/007_create_notification_groups.sql
+-- Archived before migration file consolidation into admin backend.

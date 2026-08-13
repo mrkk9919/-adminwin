@@ -1,0 +1,7 @@
+./commands.go
+./conversation.go
+./khqr.go
+./menu.go
+./mock_context.go
+./notify.go
+./payment.go

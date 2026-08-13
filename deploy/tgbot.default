@@ -1,0 +1,6 @@
+BOT_TOKEN=your_bot_token_here
+DATABASE_PATH=/opt/shared.db
+MIGRATIONS_DIR=/opt/tgbot/migrations
+BOT_NAME=wing-bank
+BOT_VERSION=dev
+POLLER_TIMEOUT=10s

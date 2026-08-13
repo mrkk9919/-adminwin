@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}仪表盘 - TGAdmin{% endblock %}
+{% block page_title %}仪表盘{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted mb-1">总用户数</p>
+                        <h3 class="mb-0">{{ stats.total_users }}</h3>
+                    </div>
+                    <div class="stat-icon bg-primary-subtle text-primary">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted mb-1">活跃用户</p>
+                        <h3 class="mb-0">{{ stats.active_users }}</h3>
+                    </div>
+                    <div class="stat-icon bg-success-subtle text-success">
+                        <i class="bi bi-person-check-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted mb-1">已封禁</p>
+                        <h3 class="mb-0">{{ stats.banned_users }}</h3>
+                    </div>
+                    <div class="stat-icon bg-danger-subtle text-danger">
+                        <i class="bi bi-person-x-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted mb-1">Bot 用户</p>
+                        <h3 class="mb-0">{{ stats.bot_users }}</h3>
+                    </div>
+                    <div class="stat-icon bg-info-subtle text-info">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">快捷操作</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="/users" class="btn btn-outline-primary">
+                        <i class="bi bi-people me-1"></i> 查看用户列表
+                    </a>
+                    <a href="/users?status=banned" class="btn btn-outline-danger">
+                        <i class="bi bi-shield-x me-1"></i> 查看封禁用户
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
