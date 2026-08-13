@@ -58,3 +58,5 @@ zi0bCYXj
 frontend.log
 tgbot/.env.copilot.bak
 *.bak
+admin/service-account.json
+service-account*.json
