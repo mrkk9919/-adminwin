@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OCR Test - Cambodian ID</title>
+<style>
+body { font-family: monospace; padding: 20px; background: #1a1a2e; color: #eee; }
+img { max-width: 500px; border: 2px solid #7bc143; border-radius: 8px; }
+pre { background: #16213e; padding: 15px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto; }
+.field { margin: 5px 0; }
+.label { color: #7bc143; font-weight: bold; }
+.value { color: #e0e0e0; }
+#status { color: #7bc143; font-size: 18px; margin: 10px 0; }
+button { background: #7bc143; color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-size: 16px; cursor: pointer; margin-right: 10px; }
+select { padding: 8px; border-radius: 6px; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>OCR Test - Cambodian ID</h1>
+<img src="/test-id2.png" id="testImg" crossorigin="anonymous">
+<br><br>
+<button onclick="runTest()">Run OCR Test</button>
+<div id="status">Ready</div>
+<h3>English OCR Text (pass 1 - preprocessed, PSM 6):</h3>
+<pre id="enText"></pre>
+<h3>English OCR Text (pass 2 - original, PSM 3):</h3>
+<pre id="enText2"></pre>
+<h3>Khmer OCR Text:</h3>
+<pre id="kmText"></pre>
+<h3>Extracted Fields:</h3>
+<div id="fields"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+const KHMER_DIGITS = {'០':'0','១':'1','២':'2','៣':'3','៤':'4','៥':'5','៦':'6','៧':'7','៨':'8','៩':'9'};
+function khmerToArabic(text) {
+  return text.replace(/[០-៩]/g, ch => KHMER_DIGITS[ch] || ch);
+}
+
+async function preprocessImage(src) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = src; });
+  const minWidth = 1600;
+  const scale = Math.max(1, minWidth / img.width);
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0, w, h);
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+  const hist = new Array(256).fill(0);
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = Math.round(0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]);
+    data[i] = data[i+1] = data[i+2] = gray;
+    hist[gray]++;
+  }
+  const total = w*h;
+  let sum = 0;
+  for (let t = 0; t < 256; t++) sum += t*hist[t];
+  let sumB=0, wB=0, maxVar=0, threshold=128;
+  for (let t = 0; t < 256; t++) {
+    wB += hist[t];
+    if (wB===0) continue;
+    const wF = total-wB;
+    if (wF===0) break;
+    sumB += t*hist[t];
+    const mB=sumB/wB, mF=(sum-sumB)/wF;
+    const bv = wB*wF*(mB-mF)*(mB-mF);
+    if (bv>maxVar) { maxVar=bv; threshold=t; }
+  }
+  const ft = Math.round(threshold*0.92);
+  for (let i = 0; i < data.length; i += 4) {
+    const v = data[i]>ft?255:0;
+    data[i]=data[i+1]=data[i+2]=v;
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvas.toDataURL('image/png');
+}
+
+function fixMrz(s) { return s.replace(/O/g,'0').replace(/[|Il]/g,'1').replace(/B/g,'8'); }
+
+function parseTdz1(lines) {
+  for (let i = 0; i < lines.length-2; i++) {
+    const a = lines[i].replace(/\s+/g,'').toUpperCase();
+    const b = lines[i+1].replace(/\s+/g,'').toUpperCase();
+    const c = lines[i+2].replace(/\s+/g,'').toUpperCase();
+    if (a.length>=25 && b.length>=25 && c.length>=10 && c.includes('<<')) {
+      if (!/^[IAC]/.test(a)) continue;
+      const l2 = fixMrz(b);
+      const sexChar = l2.charAt(7);
+      if (sexChar!=='M'&&sexChar!=='F'&&sexChar!=='<'&&sexChar!=='X') continue;
+      const l1 = fixMrz(a);
+      const docNum = l1.substring(5,14).replace(/</g,'').trim();
+      const dob = l2.substring(0,6);
+      const sex = l2.charAt(7);
+      const expiry = l2.substring(8,14);
+      const nat = l2.substring(15,18).replace(/</g,'');
+      const ns = c.split('<<');
+      const ln = (ns[0]||'').replace(/</g,' ').trim();
+      const fn = (ns[1]||'').replace(/</g,' ').trim();
+      if (!/^\d{5}[0-9<]$/.test(dob) && !/^\d{6}$/.test(dob)) continue;
+      return {format:'TD1', docNum, dob, sex, expiry, nat, lastName:ln, firstName:fn};
+    }
+  }
+  return null;
+}
+
+function mrzDate(s) {
+  if (s.length!==6) return '';
+  const yy = parseInt(s.substring(0,2),10);
+  if (isNaN(yy)) return '';
+  const year = yy>=30?1900+yy:2000+yy;
+  return `${s.substring(4,6)}-${s.substring(2,4)}-${year}`;
+}
+
+function extractDateByLabel(kmText, label) {
+  const converted = khmerToArabic(kmText);
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(escaped + '\\s*[:៖\\-]?\\s*(\\d{2})[\\/\\-\\.](\\d{2})[\\/\\-\\.](\\d{4})');
+  const m = converted.match(re);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return '';
+}
+
+function extractKhmerName(kmText) {
+  const combinedRe = /គោត្តនាម[-–—]?នាម\s*[:៖\-\s]*([\u1780-\u17FF\u17E0-\u17F9\u19E0-\u19FF\u200B-\u200D\s]+)/;
+  const m = kmText.match(combinedRe);
+  if (m) {
+    const name = m[1].trim().replace(/\s+/g, ' ');
+    const parts = name.split(/\s+/);
+    if (parts.length >= 2) return { lastName: parts[0], firstName: parts.slice(1).join(' ') };
+    return { lastName: name, firstName: '' };
+  }
+  return { lastName: '', firstName: '' };
+}
+
+async function runTest() {
+  const status = document.getElementById('status');
+  status.textContent = 'Preprocessing...';
+  const processed = await preprocessImage('/test-id2.png');
+
+  // English pass 1: preprocessed, PSM 6
+  status.textContent = 'English OCR pass 1 (preprocessed, PSM 6)...';
+  const enWorker = await Tesseract.createWorker('eng', 1, {
+    logger: m => { if (m.status === 'recognizing text') status.textContent = `EN1: ${Math.round(m.progress*100)}%`; }
+  });
+  await enWorker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
+  const enResult = await enWorker.recognize(processed);
+  await enWorker.terminate();
+  document.getElementById('enText').textContent = enResult.data.text;
+
+  // English pass 2: original image, PSM 3
+  status.textContent = 'English OCR pass 2 (original, PSM 3)...';
+  const enWorker2 = await Tesseract.createWorker('eng', 1, {
+    logger: m => { if (m.status === 'recognizing text') status.textContent = `EN2: ${Math.round(m.progress*100)}%`; }
+  });
+  await enWorker2.setParameters({ tessedit_pageseg_mode: '3', preserve_interword_spaces: '1' });
+  const enResult2 = await enWorker2.recognize('/test-id2.png');
+  await enWorker2.terminate();
+  document.getElementById('enText2').textContent = enResult2.data.text;
+
+  // Khmer pass
+  status.textContent = 'Khmer OCR...';
+  const kmWorker = await Tesseract.createWorker('khm', 1, {
+    logger: m => { if (m.status === 'recognizing text') status.textContent = `KM: ${Math.round(m.progress*100)}%`; }
+  });
+  await kmWorker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
+  const kmResult = await kmWorker.recognize(processed);
+  await kmWorker.terminate();
+  const kmText = kmResult.data.text;
+  document.getElementById('kmText').textContent = kmText;
+
+  // Merge English text from both passes (take longer text per line)
+  const enLines1 = enResult.data.text.split('\n');
+  const enLines2 = enResult2.data.text.split('\n');
+  const mergedEn = enLines1.map((l, i) => (l.length >= (enLines2[i]||'').length ? l : (enLines2[i]||l))).join('\n');
+  const lines = mergedEn.split('\n').map(l=>l.trim()).filter(Boolean);
+
+  const mrz = parseTdz1(lines);
+
+  // NID number
+  let nid = '';
+  for (const line of lines) {
+    if (line.includes('<')) continue;
+    if (line.length>20 && /^[A-Z0-9<]+$/.test(line)) continue;
+    const m = line.replace(/\s+/g,'').match(/(?<!\d)(\d{9})(?!\d)/);
+    if (m) { nid = m[1]; break; }
+  }
+
+  // Label-based dates from Khmer text
+  const labelDob = extractDateByLabel(kmText, 'ថ្ងៃខែឆ្នាំកំណើត');
+  const labelIssue = extractDateByLabel(kmText, 'ថ្ងៃចេញផ្សាយ');
+  const labelExpiry = extractDateByLabel(kmText, 'ដល់ថ្ងៃ');
+
+  // All Khmer dates
+  const kmConverted = khmerToArabic(kmText);
+  const dateRe = /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/g;
+  const khmerDates = [];
+  let dm;
+  while ((dm = dateRe.exec(kmConverted)) !== null) {
+    khmerDates.push(`${dm[1]}-${dm[2]}-${dm[3]}`);
+  }
+
+  // English name - ALL CAPS line (from merged text)
+  let enName = '';
+  for (const line of lines) {
+    if (line.includes('<')) continue;
+    if (line.length>25 && /^[A-Z0-9<]+$/.test(line)) continue;
+    if (/^[A-Z][A-Z\s'\-\.]{4,}$/.test(line) && line.split(/\s+/).length>=2) {
+      enName = line; break;
+    }
+  }
+  const enParts = enName ? enName.split(/\s+/) : [];
+  const enFirst = enParts[0] || (mrz ? mrz.firstName : '');
+  const enLast = enParts.slice(1).join(' ') || (mrz ? mrz.lastName : '');
+
+  // Khmer name
+  const kmName = extractKhmerName(kmText);
+
+  // Gender
+  let gender = '';
+  if (/ប្រុស/.test(kmText)) gender = 'Male';
+  else if (/ស្រី/.test(kmText)) gender = 'Female';
+  if (!gender && mrz) gender = mrz.sex==='M'?'Male':mrz.sex==='F'?'Female':'';
+
+  const fields = [];
+  fields.push(['NID (visible)', nid]);
+  if (mrz) {
+    fields.push(['MRZ Format', mrz.format]);
+    fields.push(['MRZ Doc Number', mrz.docNum]);
+    fields.push(['MRZ Name', `${mrz.firstName} ${mrz.lastName}`]);
+    fields.push(['MRZ DOB', mrzDate(mrz.dob)]);
+    fields.push(['MRZ Sex', mrz.sex]);
+    fields.push(['MRZ Expiry', mrzDate(mrz.expiry)]);
+    fields.push(['MRZ Nationality', mrz.nat]);
+  }
+  fields.push(['---', '---']);
+  fields.push(['នាមត្រកូល (ខ្មែរ) / Last Name KH', kmName.lastName]);
+  fields.push(['នាមខ្លួន (ខ្មែរ) / First Name KH', kmName.firstName]);
+  fields.push(['Last Name (EN)', enLast]);
+  fields.push(['First Name (EN)', enFirst]);
+  fields.push(['Gender', gender]);
+  fields.push(['ថ្ងៃខែឆ្នាំកំណើត / DOB', labelDob || (mrz ? mrzDate(mrz.dob) : khmerDates[0] || '')]);
+  fields.push(['ថ្ងៃចេញផ្សាយ / Issue Date', labelIssue || khmerDates[1] || '']);
+  fields.push(['ថ្ងៃផុតកំណត់ / Expiry Date', labelExpiry || (mrz ? mrzDate(mrz.expiry) : khmerDates[2] || '')]);
+  fields.push(['Nationality', mrz ? mrz.nat : 'KHM']);
+  fields.push(['---', '---']);
+  fields.push(['All Khmer dates', khmerDates.join(', ')]);
+  fields.push(['EN Confidence', Math.round(enResult.data.confidence)+'%']);
+  fields.push(['KM Confidence', Math.round(kmResult.data.confidence)+'%']);
+
+  document.getElementById('fields').innerHTML = fields
+    .map(([k,v]) => `<div class="field"><span class="label">${k}:</span> <span class="value">${v||'(not found)'}</span></div>`)
+    .join('');
+  status.textContent = 'Done!';
+}
+</script>
+</body>
+</html>

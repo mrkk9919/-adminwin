@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}BAKONG QR 用户管理 — Wing Bank Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>BAKONG QR 用户管理</h1>
+        <p class="subtitle">管理用户层级关系、绑定主管</p>
+    </div>
+    <div style="display:flex;gap:10px;">
+        <a href="/bakong-qr/users/create-admin" class="btn btn-primary">➕ 创建管理账号</a>
+        <a href="/bakong-qr" class="btn">交易记录</a>
+    </div>
+</div>
+
+<form method="get" class="filter-bar">
+    <input type="search" name="q" value="{{ q }}" placeholder="搜索姓名/手机/推荐码...">
+    <select name="qr_type">
+        <option value="">全部类型</option>
+        <option value="master" {% if qr_type == 'master' %}selected{% endif %}>主二维码</option>
+        <option value="admin" {% if qr_type == 'admin' %}selected{% endif %}>管理账号</option>
+        <option value="user" {% if qr_type == 'user' %}selected{% endif %}>普通用户</option>
+    </select>
+    <button class="btn btn-primary" type="submit">筛选</button>
+    {% if q or qr_type %}<a href="/bakong-qr/users" class="btn">清除</a>{% endif %}
+</form>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>姓名</th>
+                <th>手机</th>
+                <th>类型</th>
+                <th>推荐码</th>
+                <th>上级主管</th>
+                <th>绑定主管</th>
+                <th>设置类型</th>
+                <th>上传QR</th>
+                <th>注册时间</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td><code>{{ u.telegram_id }}</code></td>
+                <td>{{ u.first_name or '' }} {{ u.last_name or '' }}</td>
+                <td>{{ u.phone or '-' }}</td>
+                <td>
+                    {% if u.qr_type == 'master' %}<span class="badge badge-danger">主二维码</span>
+                    {% elif u.qr_type == 'admin' %}<span class="badge badge-warning">管理账号</span>
+                    {% else %}<span class="badge badge-info">普通用户</span>{% endif %}
+                </td>
+                <td><code>{{ u.referrer_code or '-' }}</code></td>
+                <td>
+                    {% if u.parent_id %}
+                        {{ u.parent_first or '' }} {{ u.parent_last or '' }} ({{ u.parent_id }})
+                    {% else %}-{% endif %}
+                </td>
+                <td>
+                    <form method="post" action="/bakong-qr/users/bind-parent" style="display:flex;gap:5px;">
+                        <input type="hidden" name="customer_id" value="{{ u.telegram_id }}">
+                        <select name="parent_id" style="padding:4px 8px;font-size:12px;">
+                            <option value="">无上级</option>
+                            {% for a in admins %}
+                            <option value="{{ a.telegram_id }}" {% if u.parent_id == a.telegram_id %}selected{% endif %}>
+                                {{ a.first_name or '' }} {{ a.last_name or '' }} ({{ a.referrer_code or a.telegram_id }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-primary">绑定</button>
+                    </form>
+                </td>
+                <td>
+                    <form method="post" action="/bakong-qr/users/set-type" style="display:flex;gap:5px;">
+                        <input type="hidden" name="customer_id" value="{{ u.telegram_id }}">
+                        <select name="qr_type" style="padding:4px 8px;font-size:12px;">
+                            <option value="user" {% if u.qr_type == 'user' %}selected{% endif %}>普通用户</option>
+                            <option value="admin" {% if u.qr_type == 'admin' %}selected{% endif %}>管理账号</option>
+                            <option value="master" {% if u.qr_type == 'master' %}selected{% endif %}>主二维码</option>
+                        </select>
+                        <button type="submit" class="btn btn-sm">设置</button>
+                    </form>
+                </td>
+                <td>
+                    <form method="post" action="/bakong-qr/upload-qr" enctype="multipart/form-data" style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
+                        <input type="hidden" name="customer_id" value="{{ u.telegram_id }}">
+                        <select name="currency" style="padding:4px 6px;font-size:11px;width:60px;">
+                            <option value="USD">USD</option>
+                            <option value="KHR">KHR</option>
+                        </select>
+                        <input type="file" name="qr_image" accept="image/*" style="font-size:11px;width:120px;" required>
+                        <button type="submit" class="btn btn-sm btn-primary" style="padding:4px 8px;">上传</button>
+                    </form>
+                </td>
+                <td>{{ u.created_at[:16] if u.created_at else '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="10" class="text-center text-muted">没有找到用户</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

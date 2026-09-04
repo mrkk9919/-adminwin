@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% set active = "orders" %}
+{% block title %}Orders — Wing Bank Admin{% endblock %}
+
+{% block content %}
+<header>
+    <h1>🧾 Orders</h1>
+    <p class="subtitle">{{ orders | length }} order(s) found.</p>
+</header>
+
+<div class="flex-between mb-4">
+    <form class="search-bar" method="get" action="/orders" style="margin:0; flex:1;">
+        <input type="search" name="q" value="{{ q }}" placeholder="Search by hash, customer ID, bank, or status...">
+        <button type="submit" class="btn btn-primary">Search</button>
+        {% if q %}<a href="/orders" class="btn btn-outline">Clear</a>{% endif %}
+    </form>
+    <button onclick="document.getElementById('create-form').style.display='block'" class="btn btn-success"
+        style="margin-left: 12px;">+ New order</button>
+</div>
+
+<section class="panel" id="create-form" style="display:none;">
+    <h2>Create order</h2>
+    <form method="post" action="/orders/create">
+        <div class="flex gap-2">
+            <label style="flex:2;"><span>Hash *</span><input type="text" name="hash" required
+                    placeholder="e.g. a5822d81"></label>
+            <label style="flex:1;">Customer ID<input type="text" name="customer_id" placeholder="Telegram ID"></label>
+            <label style="flex:1;">Amount<input type="text" name="amount" placeholder="100.00"></label>
+            <label style="flex:1;">Currency<input type="text" name="currency" value="USD"></label>
+        </div>
+        <div class="flex gap-2">
+            <label style="flex:1;">
+                Status
+                <select name="status_val">
+                    <option value="pending">Pending</option>
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                    <option value="unknown">Unknown</option>
+                </select>
+            </label>
+            <label style="flex:1;">Bank<input type="text" name="bank" placeholder="Wing / ABA / ..."></label>
+            <label style="flex:1;">Receiver<input type="text" name="receiver" placeholder="Account number"></label>
+            <label style="flex:1;">TX Date<input type="text" name="tx_date" placeholder="2025-01-15"></label>
+        </div>
+        <div class="flex gap-2">
+            <label style="flex:1;">TX ID<input type="text" name="tx_id" placeholder="Transaction ID"></label>
+            <label style="flex:2;">Notes<input type="text" name="notes" placeholder="Internal notes"></label>
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="btn btn-primary">Create order</button>
+            <button type="button" class="btn btn-outline"
+                onclick="document.getElementById('create-form').style.display='none'">Cancel</button>
+        </div>
+    </form>
+</section>
+
+{% if orders %}
+<div class="panel" style="padding: 0;">
+    <table>
+        <thead>
+            <tr>
+                <th>Hash</th>
+                <th>Customer</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Bank</th>
+                <th>TX ID</th>
+                <th>Updated</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for o in orders %}
+            <tr>
+                <td><a href="/orders/{{ o.hash }}"><code>{{ o.hash }}</code></a></td>
+                <td>
+                    {% if o.customer_id %}
+                    <a href="/customers/{{ o.customer_id }}">{{ o.first_name or o.username or o.customer_id }}</a>
+                    {% else %}-{% endif %}
+                </td>
+                <td>{{ o.amount or '-' }} {{ o.currency or '' }}</td>
+                <td><span
+                        class="badge badge-{{ 'ok' if o.status == 'success' else 'warn' if o.status == 'pending' else 'bad' }}">{{
+                        o.status }}</span></td>
+                <td>{{ o.bank or '-' }}</td>
+                <td class="text-sm">{{ o.tx_id or '-' }}</td>
+                <td class="text-sm text-muted">{{ o.updated_at }}</td>
+                <td>
+                    <div style="display:flex; gap:4px;">
+                        {% if o.customer_id %}
+                        <form method="post" action="/orders/{{ o.hash }}/notify" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-outline" title="Push to customer">📤</button>
+                        </form>
+                        {% endif %}
+                        <form method="post" action="/orders/{{ o.hash }}/delete" style="display:inline;"
+                            onsubmit="return confirm('Delete order {{ o.hash }}?');">
+                            <button type="submit" class="btn btn-sm" title="Delete"
+                                style="background:#e53935;color:#fff;">🗑️</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="panel">
+    <p class="empty">No orders found{% if q %} matching "{{ q }}"{% endif %}.</p>
+</div>
+{% endif %}
+{% endblock %}

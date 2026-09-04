@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+{% block title %}Bot Health — Wing Bank Admin{% endblock %}
+
+{% block content %}
+<header>
+    <div class="flex-between">
+        <div>
+            <h1>Bot Health</h1>
+            <p class="subtitle">Real-time monitoring via Telegram Bot API + heartbeat database</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <button class="btn" id="btnBind" onclick="toggleBindForm()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+                Bind Bot Token
+            </button>
+            <button class="btn btn-primary" id="btnProbe" onclick="probeBot()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 4v6h-6M1 20v-6h6" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                </svg>
+                Probe Telegram API
+            </button>
+        </div>
+    </div>
+</header>
+
+{% if msg == 'bound' %}
+<div class="panel" style="border-left:4px solid var(--wing-green, #2e7d32); padding:12px 24px; margin-bottom:16px;">
+    <span class="text-sm">✅ Bot token bound successfully. Run <code>Probe Telegram API</code> to see its info.</span>
+</div>
+{% elif msg == 'unbound' %}
+<div class="panel" style="border-left:4px solid var(--wing-green, #2e7d32); padding:12px 24px; margin-bottom:16px;">
+    <span class="text-sm">✅ Bot token removed.</span>
+</div>
+{% elif msg == 'dup' %}
+<div class="panel" style="border-left:4px solid var(--wing-red); padding:12px 24px; margin-bottom:16px;">
+    <span class="text-sm" style="color:var(--wing-red);">⚠️ This token is already configured or bound.</span>
+</div>
+{% elif msg == 'empty' %}
+<div class="panel" style="border-left:4px solid var(--wing-red); padding:12px 24px; margin-bottom:16px;">
+    <span class="text-sm" style="color:var(--wing-red);">⚠️ Please enter a bot token.</span>
+</div>
+{% elif msg.startswith('invalid:') %}
+<div class="panel" style="border-left:4px solid var(--wing-red); padding:12px 24px; margin-bottom:16px;">
+    <span class="text-sm" style="color:var(--wing-red);">⚠️ Invalid token — {{ msg[8:] }}</span>
+</div>
+{% endif %}
+
+<!-- Bind form (hidden by default) -->
+<div class="panel" id="panelBind" style="display:none;">
+    <h2>Bind Bot Token</h2>
+    <p class="text-sm text-muted">Paste a Telegram Bot API token (from @BotFather). The token is validated via
+        <code>getMe</code> before it is saved. Bound bots appear in the probe below (info &amp; permissions).
+        Note: bound bots are <strong>monitoring-only</strong> — chat/reply routing uses the bots configured in
+        <code>.env</code>.</p>
+    <form method="post" action="/bots/bind">
+        <div class="flex gap-2">
+            <label style="flex:2;">
+                Bot Token
+                <input type="text" name="token" required placeholder="123456789:AAH...">
+            </label>
+            <label style="flex:1;">
+                Label (optional)
+                <input type="text" name="name" placeholder="e.g. ABA BANK">
+            </label>
+            <div style="align-self:flex-end;">
+                <button type="submit" class="btn btn-primary">Bind</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Summary Cards -->
+<section class="cards">
+    <div class="card">
+        <div class="metric" id="cardBotCount">{{ bot_count }}</div>
+        <div class="label">Bots Known</div>
+    </div>
+    <div class="card">
+        <div class="metric" id="cardApiStatus">—</div>
+        <div class="label">Telegram API</div>
+    </div>
+    <div class="card">
+        <div class="metric" id="cardPending">—</div>
+        <div class="label">Pending Updates</div>
+    </div>
+    <div class="card">
+        <div class="metric">{{ active_customers }}</div>
+        <div class="label">Active customers (5m)</div>
+    </div>
+</section>
+
+<!-- Bot Info & Permissions (rendered by JS) -->
+<div class="panel" id="panelBots" style="display:none;">
+    <h2>Bot Info &amp; Permissions</h2>
+    <div id="botsContent"></div>
+</div>
+
+<!-- API Error -->
+<div class="panel" id="panelError" style="display:none; border-left:4px solid var(--wing-red);">
+    <h2>API Error</h2>
+    <p id="apiError" style="color:var(--wing-red);"></p>
+</div>
+
+<!-- Heartbeat Data -->
+<div class="panel">
+    <h2>Heartbeat Monitor</h2>
+    {% if heartbeats %}
+    <table>
+        <thead>
+            <tr>
+                <th>Bot</th>
+                <th>Version</th>
+                <th>Status</th>
+                <th>Uptime</th>
+                <th>Last Heartbeat</th>
+                <th>Age</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for name, hb in heartbeats.items() %}
+            <tr>
+                <td><strong>{{ name }}</strong></td>
+                <td>{{ hb.version or '—' }}</td>
+                <td>
+                    <span class="badge badge-{{ hb.heartbeat_status }}">
+                        {% if hb.heartbeat_status == 'alive' %}Alive{% elif hb.heartbeat_status == 'degraded'
+                        %}Degraded{% elif hb.heartbeat_status == 'dead' %}Dead{% else %}Unknown{% endif %}
+                    </span>
+                </td>
+                <td>
+                    {% if hb.uptime_seconds %}
+                    {% set h = hb.uptime_seconds // 3600 %}
+                    {% set m = (hb.uptime_seconds % 3600) // 60 %}
+                    {% if h > 0 %}{{ h }}h {{ m }}m{% elif m > 0 %}{{ m }}m{% else %}{{ hb.uptime_seconds }}s{% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td class="text-sm">{{ hb.last_heartbeat[:19] if hb.last_heartbeat else '—' }}</td>
+                <td>
+                    {% if hb.age_seconds is not none %}
+                    {% if hb.age_seconds < 60 %}{{ hb.age_seconds }}s ago {% elif hb.age_seconds < 3600 %}{{
+                        hb.age_seconds // 60 }}m ago {% else %}{{ hb.age_seconds // 3600 }}h ago{% endif %} {% else
+                        %}—{% endif %} </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">
+        No heartbeats recorded yet.<br>
+        Start the <code>tgbot</code> process — it reports every 30 seconds.
+    </p>
+    {% endif %}
+</div>
+
+<!-- Bound bots quick list (server-rendered, always visible) -->
+<div class="panel">
+    <h2>Bound Bot Tokens</h2>
+    {% if bound_bots %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Label</th>
+                <th>Token</th>
+                <th>Bound At</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in bound_bots %}
+            <tr>
+                <td>{{ b.id }}</td>
+                <td><strong>{{ b.name or '—' }}</strong></td>
+                <td><code>...{{ b.token[-8:] }}</code></td>
+                <td class="text-sm">{{ b.created_at[:16] if b.created_at else '—' }}</td>
+                <td>
+                    <form method="post" action="/bots/{{ b.id }}/unbind"
+                        onsubmit="return confirm('Remove this bot token?');">
+                        <button type="submit" class="btn btn-sm" style="color:var(--wing-red);">Unbind</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No bound tokens yet — click <strong>Bind Bot Token</strong> above to add one.</p>
+    {% endif %}
+</div>
+
+<script>
+    function esc(s) {
+        return String(s ?? '').replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    function toggleBindForm() {
+        const panel = document.getElementById('panelBind');
+        panel.style.display = panel.style.display === 'none' ? '' : 'none';
+    }
+
+    function yn(v) {
+        return v ? '<span class="badge badge-success">Yes</span>' : '<span class="badge">No</span>';
+    }
+
+    function renderBot(bot) {
+        let h = '<div class="panel" style="margin:0 0 12px; border:1px solid var(--border, #e0e0e0);">';
+        h += '<div class="flex-between" style="margin-bottom:8px;">';
+        h += '<div><strong>' + esc(bot.label || 'Bot') + '</strong> ';
+        h += '<span class="badge ' + (bot.source === 'bound' ? 'badge-vip' : 'badge-success') + '">'
+            + (bot.source === 'bound' ? 'bound' : '.env') + '</span> ';
+        if (bot.api_reachable) {
+            h += '<span class="badge badge-success">Reachable</span>';
+        } else {
+            h += '<span class="badge badge-failed">Unreachable</span>';
+        }
+        h += '</div>';
+        if (bot.bot_id) {
+            h += '<form method="post" action="/bots/' + bot.bot_id + '/unbind" '
+                + 'onsubmit="return confirm(\'Remove this bot token?\');">'
+                + '<button type="submit" class="btn btn-sm" style="color:var(--wing-red);">Unbind</button></form>';
+        }
+        h += '</div>';
+
+        if (!bot.api_reachable) {
+            h += '<p class="text-sm" style="color:var(--wing-red);">' + esc(bot.error || 'Unreachable') + '</p></div>';
+            return h;
+        }
+
+        h += '<table>';
+        h += '<tr><td class="text-muted">Bot ID</td><td><code>' + esc(bot.id) + '</code></td>'
+            + '<td class="text-muted">Username</td><td>@' + esc(bot.username || '—') + '</td></tr>';
+        h += '<tr><td class="text-muted">Name</td><td><strong>' + esc(bot.first_name || '—') + '</strong></td>'
+            + '<td class="text-muted">Token</td><td><code>' + esc(bot.token_tail) + '</code></td></tr>';
+        h += '<tr><td class="text-muted">Webhook</td><td>' + esc(bot.webhook_url || '—') + '</td>'
+            + '<td class="text-muted">Pending Updates</td><td>' + (bot.pending_update_count ?? 0) + '</td></tr>';
+        h += '<tr><td class="text-muted">Can Join Groups</td><td>' + yn(bot.can_join_groups) + '</td>'
+            + '<td class="text-muted">Read All Group Msgs</td><td>' + yn(bot.can_read_all_messages) + '</td></tr>';
+        h += '<tr><td class="text-muted">Inline Queries</td><td>' + yn(bot.supports_inline) + '</td>'
+            + '<td class="text-muted">Commands</td><td>' + (bot.command_count ?? 0) + ' registered</td></tr>';
+        if (bot.last_error_message) {
+            h += '<tr><td class="text-muted">Last Error</td>'
+                + '<td colspan="3" style="color:var(--wing-red)">' + esc(bot.last_error_message) + '</td></tr>';
+        }
+        h += '</table>';
+
+        if (bot.commands && bot.commands.length > 0) {
+            h += '<details style="margin-top:8px;"><summary class="text-sm" style="cursor:pointer;">Registered commands ('
+                + bot.commands.length + ')</summary>';
+            h += '<table style="margin-top:6px;"><thead><tr><th>Command</th><th>Description</th></tr></thead><tbody>';
+            bot.commands.forEach(function (c) {
+                h += '<tr><td><code>/' + esc(c.command) + '</code></td><td>' + esc(c.description) + '</td></tr>';
+            });
+            h += '</tbody></table></details>';
+        }
+        h += '</div>';
+        return h;
+    }
+
+    async function probeBot() {
+        const btn = document.getElementById('btnProbe');
+        btn.disabled = true;
+        btn.textContent = 'Probing...';
+
+        try {
+            const resp = await fetch('/bots/api/probe');
+            const data = await resp.json();
+
+            if (data.error) {
+                document.getElementById('panelError').style.display = '';
+                document.getElementById('apiError').textContent = data.error;
+            } else {
+                const bots = data.bots || [];
+                const okCount = bots.filter(function (b) { return b.api_reachable; }).length;
+                const pending = bots.reduce(function (s, b) { return s + (b.pending_update_count || 0); }, 0);
+
+                document.getElementById('cardBotCount').textContent = bots.length;
+                document.getElementById('cardApiStatus').innerHTML =
+                    okCount === bots.length
+                        ? '<span class="badge badge-success">' + okCount + '/' + bots.length + '</span>'
+                        : '<span class="badge badge-failed">' + okCount + '/' + bots.length + '</span>';
+                document.getElementById('cardPending').textContent = pending;
+
+                document.getElementById('panelBots').style.display = '';
+                document.getElementById('panelError').style.display = 'none';
+                document.getElementById('botsContent').innerHTML =
+                    bots.map(renderBot).join('');
+            }
+        } catch (err) {
+            document.getElementById('panelError').style.display = '';
+            document.getElementById('apiError').textContent = 'Fetch failed: ' + err.message;
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'Probe Telegram API';
+    }
+
+    // Auto-probe on page load
+    document.addEventListener('DOMContentLoaded', probeBot);
+</script>
+{% endblock %}

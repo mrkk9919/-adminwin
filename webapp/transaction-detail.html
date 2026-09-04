@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<title>Transaction Details</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{font-family:'Plus Jakarta Sans',ui-sans-serif,system-ui,-apple-system,sans-serif;
+    background:linear-gradient(180deg,#b9dfa3 0%,#dcedcf 10%,#edf2eb 24%,#edf2eb 100%);
+    color:#243632;min-height:100dvh;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;}
+  .wrap{max-width:420px;margin:0 auto;padding:12px 12px 34px;}
+  /* header */
+  .hd{position:relative;text-align:center;padding:4px 8px 16px;}
+  .grip{width:56px;height:6px;border-radius:99px;background:rgba(145,174,140,.8);margin:0 auto 12px;}
+  .hd h1{font-size:20px;font-weight:500;letter-spacing:-.035em;color:#263b35;}
+  .icon-btn{position:absolute;top:13px;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    border:1px solid #cbd9c9;background:rgba(244,248,241,.9);color:#426558;box-shadow:0 3px 10px rgba(67,100,69,.08);}
+  .icon-btn:active{transform:scale(.9);}
+  .back{left:0;}
+  .more{right:0;border:none;background:none;box-shadow:none;color:#63806f;width:40px;height:40px;}
+  /* receipt card */
+  .card{background:#fcfcf8;border:1px solid #d7d9d3;border-radius:28px;overflow:hidden;
+    box-shadow:0 18px 40px rgba(61,84,63,.16);animation:cardIn .56s cubic-bezier(.22,1,.36,1) both;}
+  @keyframes cardIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+  .card-head{padding:24px 22px 20px;border-bottom:1px dashed #d6d8d2;}
+  .head-row{display:flex;align-items:center;gap:13px;}
+  .avatar{position:relative;width:62px;height:62px;flex:none;border-radius:50%;background:#8ed24c;color:#f7ffef;
+    display:flex;align-items:center;justify-content:center;box-shadow:inset 0 2px 6px rgba(94,172,56,.25);font-weight:800;font-size:22px;}
+  .avatar .banktag{position:absolute;right:-4px;bottom:-4px;width:30px;height:30px;border-radius:50%;border:2px solid #fcfcf8;
+    background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.18);overflow:hidden;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:9px;font-weight:800;letter-spacing:-.04em;}
+  .avatar .banktag .bt-txt{display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:#2f78a6;}
+  .avatar .banktag img{width:100%;height:100%;object-fit:contain;padding:2.5px;border-radius:50%;background:#fff;}
+  .head-mid{min-width:0;}
+  .amt-line{display:flex;align-items:center;gap:7px;}
+  .amt{font-size:33px;font-weight:500;line-height:1;letter-spacing:-.055em;color:#303b3a;white-space:nowrap;}
+  .amt.in{color:#2f8f4e;}
+  .check{color:#4f9b63;flex:none;display:flex;}
+  .to-line{margin-top:9px;display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:1.25;color:#61716c;}
+  .to-line svg{margin-top:1px;flex:none;}
+  .to-line .nm{font-weight:600;color:#4a5b56;word-break:break-word;}
+  /* details */
+  .dl{padding:14px 22px;}
+  .drow{display:grid;grid-template-columns:auto minmax(12px,1fr) auto;align-items:center;gap:8px;min-height:37px;
+    border-bottom:1px dashed #dedfda;}
+  .drow:last-child{border-bottom:none;}
+  .drow dt{font-size:11px;font-weight:500;color:#78817e;white-space:nowrap;}
+  .dotline{border-bottom:1px dotted #d7dad5;transform:translateY(-2px);min-width:6px;}
+  .drow dd{text-align:right;font-size:11px;font-weight:500;letter-spacing:-.015em;color:#4c5653;max-width:210px;word-break:break-word;}
+  .drow dd.mono{font-family:ui-monospace,Menlo,monospace;font-size:10px;}
+  .drow dd.pos{color:#387b59;}
+  /* actions */
+  .acts{border-top:1px solid #d9dad5;background:#fafbf7;display:grid;grid-template-columns:1fr 1fr;}
+  .acts button{padding:14px 0;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;font-weight:500;color:#697772;}
+  .acts button:first-child{border-right:1px solid #d9dad5;}
+  .acts .ci{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#6b8178;transition:.15s;}
+  .acts button:active .ci{background:#e7f1e4;color:#378056;transform:scale(.9);}
+  .ticket-edge{height:12px;background:radial-gradient(circle at 8px -1px,transparent 8px,#fcfcf8 8.5px);background-size:16px 16px;}
+  .done{margin-top:16px;display:flex;align-items:center;justify-content:center;gap:7px;text-align:center;font-size:10px;font-weight:500;color:#718c7b;}
+  .toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(20px);opacity:0;transition:.25s;
+    background:#243632;color:#fff;font-size:12px;font-weight:600;padding:11px 18px;border-radius:999px;pointer-events:none;white-space:nowrap;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  /* ============ 内部转账版式 ============ */
+  body.internal{background:linear-gradient(180deg,#e4e0ea 0%,#efeaf3 26%,#f2eef5 100%);color:#29283a;}
+  .icard{animation:cardIn .5s cubic-bezier(.22,1,.36,1) both;}
+  .i-head{text-align:center;padding:16px 16px 14px;}
+  .i-glyph{width:64px;height:64px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;
+    background:#dcf0c8;color:#6cb93a;box-shadow:inset 0 -2px 0 rgba(119,142,37,.12);}
+  .i-glyph.in{background:#cdeeb0;color:#4f9e35;}
+  .i-kind{font-size:11px;font-weight:700;letter-spacing:.15em;color:#8d8899;text-transform:uppercase;}
+  .i-amt{font-size:31px;font-weight:600;letter-spacing:-.03em;color:#211f2c;margin-top:8px;white-space:nowrap;}
+  .i-amt.in{color:#2c8a56;}
+  .i-to{margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;color:#6b6675;flex-wrap:wrap;}
+  .i-to b{color:#3d3944;font-weight:600;}
+  .i-to .i-arrow{color:#bb4e58;display:inline-flex;}
+  .i-to .i-dot{color:#b7b2c2;}
+  .i-ok{color:#2c8a56;font-weight:600;}
+  .i-date{margin-top:5px;font-size:12px;color:#9a95a5;}
+  .i-acts{background:#fff;border-radius:18px;display:grid;grid-template-columns:repeat(4,1fr);padding:6px 4px;box-shadow:0 10px 26px rgba(61,54,91,.08);}
+  .i-acts button{padding:10px 2px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;font-weight:500;color:#77717d;border-radius:12px;}
+  .i-acts button:active{background:#f4f0f8;transform:scale(.97);}
+  .i-acts .ic{color:#9fb77c;display:flex;}
+  .i-acts button.saved .ic{color:#86a735;}
+  .i-lines{margin-top:12px;background:#fff;border-radius:18px;padding:2px 16px;box-shadow:0 10px 26px rgba(61,54,91,.08);}
+  .i-line{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;padding:8px 0;border-bottom:1px dashed #ece8f2;}
+  .i-line:last-child{border-bottom:none;}
+  .il-l{font-size:13px;font-weight:500;color:#77748c;white-space:nowrap;}
+  .il-r{display:flex;align-items:center;gap:7px;min-width:0;}
+  .il-v{font-size:13px;font-weight:500;color:#29283a;text-align:right;word-break:break-all;}
+  .il-v.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;}
+  .i-copy{color:#b3afc0;flex:none;display:flex;padding:3px;border-radius:6px;}
+  .i-copy:active{color:#72bd3e;background:#f1f6ea;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hd">
+    <div class="grip"></div>
+    <h1>Transaction Details</h1>
+    <button class="icon-btn back" id="backBtn" aria-label="Back">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <button class="more" id="moreBtn" aria-label="More">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+    </button>
+  </header>
+
+  <section class="card" id="extCard">
+    <div class="card-head">
+      <div class="head-row">
+        <div class="avatar"><span id="avInitial">–</span><span class="banktag" id="bankTag"><span class="bt-txt" id="bankTagText">BANK</span></span></div>
+        <div class="head-mid">
+          <div class="amt-line">
+            <p class="amt" id="bigAmt">—</p>
+            <span class="check">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+          </div>
+          <div class="to-line">
+            <svg id="dirIcon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#c35c5d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+            <p id="toText">—</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dl" id="detailList"></div>
+
+    <div class="acts">
+      <button id="shareBtn">
+        <span class="ci"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg></span>
+        Share
+      </button>
+      <button id="shotBtn">
+        <span class="ci"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3.2"/></svg></span>
+        Screenshot
+      </button>
+    </div>
+    <div class="ticket-edge"></div>
+  </section>
+
+  <!-- 内部转账详情（Wing 内转） -->
+  <section class="icard" id="intCard" hidden>
+    <div class="i-head">
+      <div class="i-glyph" id="iGlyph">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+      </div>
+      <div class="i-kind">Internal Transfer</div>
+      <div class="i-amt" id="iAmt">—</div>
+      <div class="i-to">
+        <span class="i-arrow" id="iDirArrow">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+        </span>
+        <span id="iToLabel"></span><span class="i-dot">•</span><span class="i-ok">Completed</span>
+      </div>
+      <div class="i-date" id="iDate"></div>
+    </div>
+    <div class="i-acts">
+      <button id="iFav" type="button">
+        <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span>
+        <span class="lbl">Favorite</span>
+      </button>
+      <button id="iRepeat" type="button">
+        <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span>
+        Repeat
+      </button>
+      <button id="iShare" type="button">
+        <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg></span>
+        Share
+      </button>
+      <button id="iShot" type="button">
+        <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3.2"/></svg></span>
+        Screenshot
+      </button>
+    </div>
+    <div class="i-lines" id="iLines"></div>
+  </section>
+
+  <div class="done" id="doneBar">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    Transfer completed successfully
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  function $(id){return document.getElementById(id);}
+  var RIEL_PATH="M78 259V327H292V259ZM152 361V394Q121 433 106.0 451.0Q91 469 87.0 477.0Q83 485 83 491Q83 497 88.0 505.5Q93 514 106.5 532.5Q120 551 147 586H268V519H147V518L244 410V361ZM244 376V69Q244 32 226.0 16.0Q208 0 175 0H157Q130 0 103.0 8.5Q76 17 58.0 40.5Q40 64 40 108Q40 148 58.0 171.5Q76 195 101.5 206.0Q127 217 152 219V376ZM152 67V151Q138 151 122.5 142.0Q107 133 107 109Q107 85 121.5 76.0Q136 67 152 67Z";
+  function rielSvg(h){return '<svg viewBox="40 -586 252 586" preserveAspectRatio="xMidYMid meet" style="height:'+(h||'1em')+';width:auto;vertical-align:-0.08em;display:inline-block;flex:none;" fill="currentColor"><g transform="scale(1,-1)"><path d="'+RIEL_PATH+'"/></g></svg>';}
+  function money(cur,val){
+    var n=Number(val)||0;
+    if(cur==='KHR')return rielSvg('0.92em')+'<span style="margin-left:3px;">'+Math.floor(n).toLocaleString('en-US')+'</span>';
+    return '<span>$</span>'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+  // 读取交易（由交易记录页写入 sessionStorage；兜底 localStorage / URL ref）
+  var tx=null;
+  try{tx=JSON.parse(sessionStorage.getItem('view_tx_detail')||'null');}catch(e){tx=null;}
+  if(!tx){
+    var ref=new URLSearchParams(location.search).get('ref');
+    var list=[];try{list=JSON.parse(localStorage.getItem('wing_bank_user_transactions')||'[]');}catch(e){}
+    if(ref)for(var i=0;i<list.length;i++){if(list[i].txId===ref||list[i].id===ref){tx=list[i];break;}}
+  }
+  tx=tx||{};
+  var dir=tx.dir||(tx.type==='in'?'in':'out');
+  var isInternal=tx.internal===true||tx.kind==='internal';
+  var cur=tx.currency||'KHR';
+  var name=tx.name||tx.payeeName||tx.subtitle||(dir==='in'?'Sender':'Recipient');
+  var bank=tx.bank||tx.payeeBank||'Bakong';
+  // 收款银行 logo（与 App 同一套资源与匹配逻辑：命中显示 logo，否则回退缩写）
+  var BANK_LOGOS=[
+    {kw:['wing'],src:'/wing-logo-new.png'},
+    {kw:['aba'],src:'/aba-logo.webp'},
+    {kw:['acleda'],src:'/acleda-logo.png'},
+    {kw:['canadia'],src:'/canadia-logo.png'},
+    {kw:['bakong','/nbc',' nbc'],src:'/bakong-logo.png'},
+    {kw:['chipmong','chip mong'],src:'/chipmong-logo.png'},
+    {kw:['phillip'],src:'/phillip-logo.png'},
+    {kw:['j trust','jtrust'],src:'/jtrust-logo.jpg'},
+    {kw:['sathapana'],src:'/sathapana-logo.png'},
+    {kw:['maybank','may bank'],src:'/maybank-logo.png'},
+    {kw:['foreign trade','ftb'],src:'/ftb-logo.jpg'},
+    {kw:['campu','cambodian public'],src:'/campu-logo.jpg'},
+    {kw:['prince'],src:'/prince-logo.png'},
+    {kw:['bred'],src:'/bred-logo.png'},
+    {kw:['cimb'],src:'/cimb-logo.png'},
+    {kw:['rhb'],src:'/rhb-logo.png'},
+    {kw:['kookmin'],src:'/kookmin-logo.png'},
+    {kw:['shinhan'],src:'/shinhan-logo.png'},
+    {kw:['amret'],src:'/amret-logo.png'},
+    {kw:['lolc'],src:'/lolc-logo.png'},
+    {kw:['amk'],src:'/amk-logo.png'},
+    {kw:['post bank','postbank','cambodia post'],src:'/postbank-logo.png'},
+    {kw:['ucb','union commercial'],src:'/ucb-logo.png'},
+    {kw:['truemoney','true money'],src:'/truemoney-logo.jpg'},
+    {kw:['pi pay','pipay'],src:'/pipay-logo.png'}
+  ];
+  function bankLogoFor(n){
+    n=String(n||'').toLowerCase();
+    for(var i=0;i<BANK_LOGOS.length;i++){var b=BANK_LOGOS[i];
+      for(var j=0;j<b.kw.length;j++){if(n.indexOf(b.kw[j])>=0)return b;}}
+    return null;
+  }
+  var fromAcct=tx.fromAccount||(tx.detail&&tx.detail['From account'])||'—';
+  var toAcct=tx.account||tx.payeeAccount||(tx.detail&&tx.detail['To account'])||'—';
+  var refId=tx.ref||tx.txId||(tx.detail&&tx.detail['Reference ID'])||('bqr-'+Date.now());
+  // Transaction Hash：优先用后端真实 hash；否则由唯一编号稳定派生 8 位小写 hex（同一笔恒定）
+  function hexHash(str){var s=String(str==null?'':str),h=0x811c9dc5;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193);}return ('00000000'+(h>>>0).toString(16)).slice(-8);}
+  var hash=tx.hash||tx.txHash||hexHash(refId||tx.key||('tx'+Date.now()));
+  var timeStr=(tx.detail&&tx.detail['Time'])||tx.dateStr||new Date(tx.date||Date.now()).toLocaleString('en-US',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+
+  var toastTimer;
+  function toast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},2000);}
+  function doShare(){
+    var text='Transfer completed: '+(dir==='in'?'+':'-')+(cur==='USD'?'$':'')+tx.amount+' '+(cur)+' to '+name+' · '+refId;
+    if(navigator.share){navigator.share({title:'Transaction Details',text:text}).catch(function(){});}
+    else if(navigator.clipboard){navigator.clipboard.writeText(text);}
+    toast('Receipt ready to share');
+  }
+  // ===== 内部转账版式 =====
+  var extCard=$('extCard'),intCard=$('intCard'),doneBar=$('doneBar');
+  function pad2(n){return ('0'+n).slice(-2);}
+  function fmtIntlDate(d){d=d||new Date();var h=d.toLocaleString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});return pad2(d.getDate())+'-'+pad2(d.getMonth()+1)+'-'+d.getFullYear()+' | '+h;}
+  function copyText(v){try{if(navigator.clipboard)navigator.clipboard.writeText(String(v));}catch(e){}toast('Copied');}
+  function iLine(label,value,mono){
+    return '<div class="i-line"><span class="il-l">'+esc(label)+'</span><span class="il-r"><span class="il-v'+(mono?' mono':'')+'">'+esc(value)+'</span>'+
+      '<button class="i-copy" type="button" data-v="'+esc(String(value))+'" aria-label="Copy"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></span></div>';
+  }
+  var ARROW_OUT='<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>';
+  var ARROW_IN='<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M17 17 7 7"/></svg>';
+  function renderInternal(){
+    document.body.classList.add('internal');
+    extCard.hidden=true;intCard.hidden=false;doneBar.style.display='none';
+    var glyph=$('iGlyph'),amt=$('iAmt');
+    if(dir==='in'){glyph.classList.add('in');glyph.innerHTML=ARROW_IN;
+      $('iDirArrow').style.color='#3f9e5c';$('iDirArrow').innerHTML=ARROW_IN.replace('width="28" height="28"','width="15" height="15"').replace('stroke-width="2.1"','stroke-width="2.3"');amt.classList.add('in');
+    }else{glyph.innerHTML=ARROW_OUT;}
+    amt.innerHTML=(dir==='in'?'+ ':'− ')+money(cur,tx.amount||0);
+    $('iToLabel').innerHTML=(dir==='in'?'From ':'To ')+'<b>'+esc(name)+'</b>';
+    var dd=new Date(tx.date||Date.now());if(isNaN(dd))dd=new Date();
+    $('iDate').textContent=fmtIntlDate(dd);
+    var amtTxt=(dir==='in'?'+ ':'- ')+(cur==='USD'?'$':'')+(cur==='KHR'?Math.floor(tx.amount||0).toLocaleString('en-US'):(Number(tx.amount)||0).toFixed(2));
+    var myAcct=tx.myAccount||(dir==='in'?toAcct:fromAcct)||'—';
+    var line2=dir==='in'?iLine('My account',myAcct,true):iLine('Recipient account',toAcct||'—',true);
+    var line1Acct=dir==='in'?(fromAcct||'—'):myAcct;
+    $('iLines').innerHTML=[iLine('From account',line1Acct,true),line2,iLine('Amount',amtTxt,false),iLine('Fee','Free',false),iLine('Transaction ID',refId,true)].join('');
+    Array.prototype.forEach.call($('iLines').querySelectorAll('.i-copy'),function(btn){btn.addEventListener('click',function(){copyText(btn.getAttribute('data-v'));});});
+    var favs=[];try{favs=JSON.parse(localStorage.getItem('wing_fav_tx')||'[]');}catch(e){}
+    var favBtn=$('iFav');
+    function syncFav(){var on=favs.indexOf(refId)>=0;favBtn.classList.toggle('saved',on);favBtn.querySelector('.lbl').textContent=on?'Saved':'Favorite';favBtn.querySelector('.ic svg').setAttribute('fill',on?'#aecf4b':'none');}
+    favBtn.addEventListener('click',function(){var i=favs.indexOf(refId);if(i>=0)favs.splice(i,1);else favs.unshift(refId);try{localStorage.setItem('wing_fav_tx',JSON.stringify(favs.slice(0,50)));}catch(e){}syncFav();toast(i>=0?'Removed from favorites':'Saved to favorites');});
+    syncFav();
+    $('iRepeat').addEventListener('click',function(){toast('Repeat transfer');});
+    $('iShare').addEventListener('click',doShare);
+    $('iShot').addEventListener('click',function(){toast('Receipt ready for your screenshot');});
+  }
+  if(isInternal){renderInternal();}
+  if(!isInternal){
+  // 头部（外部 QR / Bakong 付款）
+  $('avInitial').textContent=String(name).split(' ').map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+  (function(){
+    var btEl=$('bankTag'),btTxt=$('bankTagText'),bInfo=bankLogoFor(bank),img=btEl.querySelector('img');
+    if(bInfo){
+      btTxt.style.display='none';
+      if(!img){img=document.createElement('img');btEl.appendChild(img);}
+      img.alt=String(bank);img.src=bInfo.src;
+    }else{
+      btTxt.style.display='';btTxt.textContent=String(bank).split(' ')[0].slice(0,5).toUpperCase();
+      if(img)img.remove();
+    }
+  })();
+  var amtEl=$('bigAmt');
+  amtEl.innerHTML=(dir==='in'?'+ ':'− ')+money(cur,tx.amount||0);
+  amtEl.className='amt'+(dir==='in'?' in':'');
+  $('toText').innerHTML=(dir==='in'?'Received from ':'Transferred to ')+'<span class="nm">'+esc(name)+'</span>';
+  if(dir==='in'){var ic=$('dirIcon');ic.setAttribute('stroke','#3f9e5c');ic.innerHTML='<path d="M7 7h10v10"/><path d="M7 17 17 7"/>';}
+
+  // 明细
+  var rows=[
+    ['Date and Time',timeStr,false,false],
+    ['From Account',fromAcct,false,false],
+    ['Recipient Name',name,false,false],
+    ['Recipient Account',toAcct,false,false],
+    ['Recipient Bank',bank,false,false],
+    ['Payment Amount',(dir==='in'?'+ ':'- ')+(cur==='USD'?'$':'')+ (cur==='KHR'?Math.floor(tx.amount||0).toLocaleString():(Number(tx.amount)||0).toFixed(2))+' '+(cur==='KHR'?'':''),false,false],
+    ['Fee','Free',true,false],
+    ['Transaction ID',refId,false,true],
+    ['Transaction Hash',hash,false,true]
+  ];
+  $('detailList').innerHTML=rows.map(function(r){
+    return '<div class="drow"><dt>'+esc(r[0])+':</dt><span class="dotline"></span><dd class="'+(r[2]?'pos ':'')+(r[3]?'mono':'')+'">'+esc(r[1])+'</dd></div>';
+  }).join('');
+  } // end if(!isInternal)
+
+  // 返回（两种版式共用）
+  $('backBtn').addEventListener('click',function(){
+    if(history.length>1){try{history.back();return;}catch(e){}}
+    location.replace('/app/transactions.html');
+  });
+  $('shareBtn').addEventListener('click',doShare);
+  $('shotBtn').addEventListener('click',function(){toast('Receipt ready for your screenshot');});
+  $('moreBtn').addEventListener('click',function(){toast('This receipt is kept in your activity history');});
+})();
+</script>
+</body>
+</html>

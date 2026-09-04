@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+<title>Send Money</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{font-family:'Plus Jakarta Sans',ui-sans-serif,system-ui,-apple-system,sans-serif;background:#f5f5f5;color:#111b2a;}
+  .screen{max-width:466px;margin:0 auto;min-height:100dvh;background:#fff;display:flex;flex-direction:column;position:relative;}
+  .hidden{display:none!important;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;}
+  input{font-family:inherit;}
+
+  /* 顶部导航 */
+  .topbar{display:flex;align-items:center;height:76px;padding:8px 12px 0;}
+  .topbar .title{flex:1;text-align:center;font-size:16px;font-weight:700;color:#111;}
+  .icon-btn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#132231;}
+  .icon-btn:active{background:#f3f8f1;}
+  .spacer{width:36px;}
+
+  /* 收款人头部 */
+  .recipient-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:2px 20px 0;}
+  .rh-left{min-width:0;padding-top:2px;}
+  .rh-title{font-size:22px;font-weight:700;line-height:1.25;letter-spacing:-.55px;color:#111;word-break:break-word;}
+  .rh-from{margin-top:9px;display:flex;align-items:center;gap:10px;font-size:15px;color:#1b2733;}
+  .rh-from strong{font-weight:700;}
+  .check-ico{color:#82ba4d;flex-shrink:0;}
+  .bank-avatar{width:82px;height:82px;flex-shrink:0;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:inset 0 -5px 0 rgba(0,0,0,.10);position:relative;}
+  .bank-avatar .ba-inner{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;border:2px solid;}
+  .bank-avatar .ba-name{margin-top:4px;max-width:68px;font-size:8px;font-weight:700;color:#fff;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bank-avatar.wing{background:#73bf42;box-shadow:inset 0 -5px 0 rgba(35,114,45,.08);}
+
+  /* 来源账户 */
+  .from-card{margin:18px 20px 0;border-radius:16px;background:#f6f8f6;border:1px solid #ecefec;padding:14px 16px;}
+  .from-label{font-size:11px;font-weight:700;letter-spacing:.08em;color:#9aa3a0;margin-bottom:8px;}
+  .from-row{display:flex;align-items:center;justify-content:space-between;width:100%;}
+  .from-acct{font-size:15px;font-weight:600;color:#333;text-align:left;}
+  .from-acct .cur{font-weight:400;color:#888;}
+  .from-bal{font-size:13px;font-weight:600;color:#7bc143;margin-top:3px;text-align:left;}
+  .acct-dropdown{margin-top:10px;border-radius:12px;background:#fff;border:1px solid #e8e8e8;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.08);}
+  .acct-option{width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #f5f5f5;text-align:left;}
+  .acct-option:last-child{border-bottom:none;}
+  .acct-option.active{background:#f0fae8;}
+  .acct-option .num{font-size:14px;color:#333;}
+  .acct-option .bal{font-size:12px;color:#7bc143;font-weight:600;}
+
+  /* 币种切换 */
+  .currency-wrap{margin-top:44px;display:flex;justify-content:center;}
+  .seg{display:flex;height:47px;align-items:center;background:#f1f3f6;border-radius:999px;padding:3px;}
+  .seg button{height:41px;min-width:77px;padding:0 18px;border-radius:999px;font-size:17px;font-weight:700;color:#151a22;transition:all .2s;}
+  .seg button.on{background:#79c545;color:#fff;box-shadow:0 3px 8px rgba(70,147,47,.18);}
+  .seg.disabled{opacity:.6;}
+
+  /* 金额显示 */
+  .amount-display{margin-top:42px;min-height:66px;display:flex;align-items:center;justify-content:center;padding:0 20px;}
+  .cur-badge{margin-right:12px;width:34px;height:40px;border-radius:5px;background:#79c545;color:#fff;font-size:22px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 -2px 0 rgba(55,130,45,.12);}
+  .cur-badge svg{height:24px;width:auto;}
+  .amount-num{font-size:49px;font-weight:500;line-height:1;letter-spacing:-2px;color:#050505;word-break:break-all;text-align:center;}
+  .caret{margin-left:9px;width:3px;height:43px;border-radius:999px;background:#0b1519;animation:blink 1.05s steps(1,end) infinite;}
+  @keyframes blink{0%,45%{opacity:1;}46%,100%{opacity:0;}}
+
+  /* 备注 */
+  .note-wrap{margin:20px 20px 0;}
+  .note-input{width:100%;padding:13px 16px;border-radius:14px;background:#f5f5f5;border:1px solid #ebebeb;font-size:14px;color:#444;outline:none;}
+  .note-input:focus{border-color:#bfe0a8;}
+  .err-msg{margin:10px 20px 0;color:#e53e3e;font-size:13px;font-weight:600;text-align:center;}
+
+  /* 付款按钮 */
+  .pay-wrap{padding:18px 20px 14px;}
+  .pay-btn{width:100%;height:60px;border-radius:16px;background:#79c545;color:#fff;font-size:20px;font-weight:700;transition:all .15s;box-shadow:0 3px 0 rgba(113,177,73,.10);}
+  .pay-btn:active{transform:scale(.99);}
+  .pay-btn:disabled{background:#c5e1a5;box-shadow:none;}
+
+  /* 键盘 */
+  .keypad{margin-top:auto;display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #f0f2f2;}
+  .key{height:74px;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:400;color:#050505;border-bottom:1px solid #f0f2f2;border-right:1px solid #f0f2f2;transition:background .1s;}
+  .key:active{background:#f0f7f1;transform:scale(.97);}
+  .key:nth-child(3n){border-right:none;}
+  .key.back{color:#070b0d;}
+
+  /* PIN 界面 */
+  .pin-screen{position:absolute;inset:0;background:#fff;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;}
+  .pin-back{position:absolute;top:18px;left:12px;}
+  .pin-title{font-size:18px;font-weight:600;color:#222;margin-bottom:6px;}
+  .pin-sub{font-size:13px;color:#aaa;margin-bottom:28px;text-align:center;}
+  .pin-dots{display:flex;gap:16px;margin-bottom:14px;}
+  .pin-dot{width:14px;height:14px;border-radius:50%;background:#e0e0e0;}
+  .pin-dot.filled{background:#7bc143;}
+  .pin-dot.err{background:#e53e3e!important;}
+  .pin-err{color:#e53e3e;font-size:14px;font-weight:500;margin-bottom:14px;min-height:20px;}
+  .pin-keypad{width:100%;max-width:320px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;}
+  .pin-key{height:64px;border-radius:14px;font-size:26px;font-weight:500;color:#222;background:#f7f8f7;}
+  .pin-key:active{background:#eaf4e3;}
+
+  /* Processing */
+  .center-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+  .spinner{width:56px;height:56px;border-radius:50%;border:3px solid #7bc143;border-top-color:transparent;animation:spin .9s linear infinite;margin-bottom:18px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .proc-t{font-size:15px;font-weight:600;color:#222;}
+  .proc-s{font-size:13px;color:#888;margin-top:8px;text-align:center;line-height:1.6;}
+
+  /* Success */
+  .success-check{margin-top:24px;width:64px;height:64px;border-radius:50%;border:2.5px solid #7bc143;background:#fff;display:flex;align-items:center;justify-content:center;}
+  .success-amount-box{display:flex;flex-direction:column;align-items:center;padding:20px 0 24px;border-bottom:1px solid #f0f0f0;width:100%;}
+  .success-amount{font-size:32px;font-weight:700;color:#111;letter-spacing:-.5px;display:flex;align-items:center;gap:10px;}
+  .success-to{margin-top:8px;font-size:14px;font-weight:600;color:#7bc143;}
+  .detail-list{flex:1;overflow-y:auto;padding:16px 20px;width:100%;}
+  .detail-card{border:1px solid #f0f0f0;border-radius:16px;overflow:hidden;}
+  .detail-row{display:flex;align-items:flex-start;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #f5f5f5;gap:12px;}
+  .detail-row:last-child{border-bottom:none;}
+  .detail-k{font-size:13px;color:#777;flex-shrink:0;}
+  .detail-v{font-size:13px;font-weight:600;color:#111;text-align:right;word-break:break-all;}
+  .success-actions{padding:16px 20px calc(20px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;}
+  .btn-primary{width:100%;padding:16px;border-radius:999px;background:#7bc143;color:#fff;font-size:16px;font-weight:600;}
+  .btn-ghost{width:100%;padding:10px;font-size:14px;color:#888;background:transparent;}
+
+  /* Failed */
+  .fail-card{margin:0 20px;background:#fff3f3;border:1px solid #ffd0d0;border-radius:16px;padding:16px;}
+  .fail-t{font-weight:800;color:#d32f2f;margin-bottom:6px;}
+  .fail-s{font-size:13px;color:#555;line-height:1.6;}
+  .fail-id{font-size:12px;color:#888;margin-top:8px;font-family:monospace;}
+
+  /* Toast */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:8px;background:#233d2d;color:#fff;padding:12px 18px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:0 8px 22px rgba(26,62,38,.2);animation:toastIn .18s ease-out both;max-width:90%;}
+  @keyframes toastIn{from{opacity:0;transform:translate(-50%,8px);}to{opacity:1;transform:translate(-50%,0);}}
+  /* 顶部即时通知横幅 */
+  .app-notif{position:fixed;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;z-index:120;max-width:456px;margin:0 auto;
+    background:#fff;border:1px solid #cfe3bd;border-left:4px solid #2f78a6;border-radius:14px;box-shadow:0 12px 30px rgba(31,61,40,.18);
+    padding:11px 13px;display:flex;align-items:center;gap:11px;cursor:pointer;animation:notifIn .32s cubic-bezier(.22,1,.36,1) both;}
+  .app-notif .an-ico{width:38px;height:38px;border-radius:50%;background:#e7f0f7;color:#2f78a6;display:flex;align-items:center;justify-content:center;flex:none;}
+  .app-notif .an-t{font-size:12.5px;font-weight:800;color:#243632;}
+  .app-notif .an-b{font-size:11.5px;color:#6b7a72;margin-top:2px;line-height:1.35;}
+  .app-notif.hide{animation:notifOut .3s ease both;}
+  @keyframes notifIn{from{opacity:0;transform:translateY(-14px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes notifOut{to{opacity:0;transform:translateY(-14px);}}
+  .btn-notif{width:100%;border:1.5px solid #7bc143;color:#3f7a22;background:#f3faec;font-weight:800;font-size:15px;padding:14px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-notif:active{transform:scale(.985);}
+</style>
+</head>
+<body>
+<div class="screen" id="app">
+
+  <!-- ============ AMOUNT 金额界面 ============ -->
+  <div id="view-amount" class="screen-view" style="display:flex;flex-direction:column;flex:1;">
+    <div class="topbar">
+      <button class="icon-btn" id="backBtn" aria-label="Go back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <span class="title">Send Money</span>
+      <span class="spacer"></span>
+    </div>
+
+    <div class="recipient-head">
+      <div class="rh-left">
+        <h1 class="rh-title" id="recipientTitle">To —</h1>
+        <p class="rh-from">
+          <span>From: <strong id="fromAccountLabel">—</strong></span>
+          <svg class="check-ico" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </p>
+      </div>
+      <div class="bank-avatar wing" id="bankAvatar">
+        <div class="ba-inner" id="bankAvatarInner" style="border-color:#9bd04e;background:#9bd04e;">W</div>
+        <span class="ba-name" id="bankAvatarName">Wing Bank</span>
+      </div>
+    </div>
+
+    <div class="from-card">
+      <div class="from-label">FROM YOUR ACCOUNT</div>
+      <button class="from-row" id="fromToggle">
+        <div style="text-align:left">
+          <div class="from-acct" id="fromAcctNum">—</div>
+          <div class="from-bal" id="fromAcctBal">Balance: —</div>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7bc143" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="acct-dropdown hidden" id="acctDropdown"></div>
+    </div>
+
+    <div class="currency-wrap">
+      <div class="seg" id="currencySeg">
+        <button data-cur="KHR" class="on">KHR</button>
+        <button data-cur="USD">USD</button>
+      </div>
+    </div>
+
+    <div class="amount-display">
+      <span class="cur-badge" id="curBadge"></span>
+      <span class="amount-num" id="amountNum">0</span>
+      <span class="caret"></span>
+    </div>
+
+    <div class="note-wrap">
+      <input type="text" class="note-input" id="noteInput" placeholder="Note (optional)" maxlength="120" />
+    </div>
+    <div class="err-msg" id="amountErr"></div>
+
+    <div class="pay-wrap">
+      <button class="pay-btn" id="payBtn" disabled>Pay Now</button>
+    </div>
+
+    <div class="keypad" id="keypad"></div>
+  </div>
+
+  <!-- ============ PIN 界面 ============ -->
+  <div id="view-pin" class="pin-screen hidden">
+    <button class="icon-btn pin-back" id="pinCancel">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <p class="pin-title">Enter PIN to confirm</p>
+    <p class="pin-sub">Enter your 4-digit payment PIN</p>
+    <div class="pin-dots" id="pinDots"></div>
+    <p class="pin-err" id="pinErr"></p>
+    <div class="pin-keypad" id="pinKeypad"></div>
+  </div>
+
+  <!-- ============ PROCESSING ============ -->
+  <div id="view-processing" class="hidden" style="display:flex;flex-direction:column;flex:1;">
+    <div class="topbar"><span class="spacer"></span><span class="title">Processing</span><span class="spacer"></span></div>
+    <div class="center-screen">
+      <div class="spinner"></div>
+      <p class="proc-t">Processing payment…</p>
+      <p class="proc-s">Please wait, confirming transaction</p>
+    </div>
+  </div>
+
+  <!-- ============ SUCCESS ============ -->
+  <div id="view-success" class="hidden" style="display:flex;flex-direction:column;flex:1;">
+    <div class="topbar">
+      <span class="spacer"></span>
+      <span class="title">Payment Successful</span>
+      <span class="spacer"></span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;">
+      <div class="success-check">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M7 17 L13 23 L25 10" stroke="#7bc143" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="success-amount-box">
+        <p class="success-amount" id="successAmount">—</p>
+        <p class="success-to" id="successTo">→ —</p>
+      </div>
+    </div>
+    <div class="detail-list"><div class="detail-card" id="successDetails"></div></div>
+    <div class="success-actions">
+      <button class="btn-primary" id="viewTxBtn">View Transactions</button>
+      <button class="btn-notif" id="viewNotifBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        View Notifications
+      </button>
+      <button class="btn-ghost" id="goHomeBtn">Back to Home</button>
+    </div>
+  </div>
+
+  <!-- ============ FAILED ============ -->
+  <div id="view-failed" class="hidden" style="display:flex;flex-direction:column;flex:1;">
+    <div class="topbar">
+      <button class="icon-btn" id="failedBack">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <span class="title">Payment Failed</span>
+      <span class="spacer"></span>
+    </div>
+    <div class="center-screen" style="justify-content:flex-start;">
+      <div class="fail-card">
+        <p class="fail-t">Payment not completed</p>
+        <p class="fail-s" id="failedMsg">Unknown error</p>
+        <p class="fail-id" id="failedId"></p>
+      </div>
+    </div>
+    <div class="pay-wrap">
+      <button class="pay-btn" id="retryBtn" style="background:#f5f5f5;color:#555;">Back &amp; Retry</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+  // ---------- 工具 ----------
+  function $(id){return document.getElementById(id);}
+  function lsGet(k,d){try{var v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}}
+  function lsGetJSON(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+  function lsSet(k,v){try{localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v));}catch(e){}}
+  // ---- 付款通知（纯前端通知中心，不改后端）----
+  function pushNotification(n){
+    try{
+      var arr=lsGetJSON('wing_notifications',[])||[];
+      n.id='n-'+Date.now()+'-'+Math.random().toString(16).slice(2,6);
+      n.ts=n.ts||Date.now();n.read=false;
+      arr.unshift(n);if(arr.length>60)arr=arr.slice(0,60);
+      lsSet('wing_notifications',arr);return n;
+    }catch(e){return n;}
+  }
+  function showNotifBanner(title,body){
+    try{
+      var old=document.getElementById('appNotif');if(old)old.remove();
+      var el=document.createElement('div');el.className='app-notif';el.id='appNotif';
+      el.innerHTML='<span class="an-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>'+
+        '<span style="flex:1;min-width:0;"><span class="an-t"></span><span class="an-b"></span></span>';
+      el.querySelector('.an-t').textContent=title;el.querySelector('.an-b').textContent=body;
+      el.addEventListener('click',function(){location.href='/app/notifications.html';});
+      document.body.appendChild(el);
+      setTimeout(function(){el.classList.add('hide');setTimeout(function(){el.remove();},300);},4200);
+    }catch(e){}
+  }
+  function sysNotify(title,body){
+    try{ if(window.Notification && Notification.permission==='granted'){ new Notification(title,{body:body}); } }catch(e){}
+  }
+  // 柬埔寨瑞尔符号 ៛ 用内联矢量，避免依赖字体渲染
+  var RIEL_PATH="M78 259V327H292V259ZM152 361V394Q121 433 106.0 451.0Q91 469 87.0 477.0Q83 485 83 491Q83 497 88.0 505.5Q93 514 106.5 532.5Q120 551 147 586H268V519H147V518L244 410V361ZM244 376V69Q244 32 226.0 16.0Q208 0 175 0H157Q130 0 103.0 8.5Q76 17 58.0 40.5Q40 64 40 108Q40 148 58.0 171.5Q76 195 101.5 206.0Q127 217 152 219V376ZM152 67V151Q138 151 122.5 142.0Q107 133 107 109Q107 85 121.5 76.0Q136 67 152 67Z";
+  function rielSvg(h){
+    return '<svg viewBox="40 -586 252 586" preserveAspectRatio="xMidYMid meet" style="height:'+(h||'1em')+';width:auto;vertical-align:-0.08em;display:inline-block;flex:none;" fill="currentColor"><g transform="scale(1,-1)"><path d="'+RIEL_PATH+'"/></g></svg>';
+  }
+  function moneyHTML(cur,val){
+    if(cur==='KHR') return rielSvg('1.02em')+'<span style="margin-left:3px;">'+Math.floor(Number(val)||0).toLocaleString('en-US')+'</span>';
+    return '<span>$</span>'+(Number(val)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  // 账户余额在 localStorage 中存的是显示数值（元/瑞尔），直接按数字处理
+  function parseAmt(s){return parseFloat(String(s).replace(/,/g,''))||0;}
+
+  // ---------- KHQR / Bakong EMVCo TLV 解析（移植自原 App yh/yS/CS/ES，逻辑保持一致）----------
+  function tlvParse(e){
+    var A={},r=0;
+    for(;r+4<=e.length;){
+      var tag=e.slice(r,r+2),len=parseInt(e.slice(r+2,r+4),10);
+      if(isNaN(len)||len<0||r+4+len>e.length)break;
+      A[tag]=e.slice(r+4,r+4+len);r+=4+len;
+    }
+    return A;
+  }
+  function _bankChain(s){
+    if(!s)return '';
+    if(s.indexOf('acleda')>=0||s==='aclb')return 'ACLEDA Bank';
+    if(s.indexOf('wing')>=0)return 'Wing Bank';
+    if(s.indexOf('aba')>=0)return 'ABA Bank';
+    if(s.indexOf('nbc')>=0||s.indexOf('bakong')>=0)return 'BAKONG / NBC';
+    if(s.indexOf('chipmong')>=0)return 'Chipmong Bank';
+    if(s.indexOf('canadia')>=0)return 'Canadia Bank';
+    if(s.indexOf('maybank')>=0)return 'Maybank';
+    if(s.indexOf('cimb')>=0)return 'CIMB Bank';
+    if(s.indexOf('bred')>=0)return 'BRED Bank';
+    if(s.indexOf('ftb')>=0)return 'FTB Bank';
+    if(s.indexOf('prince')>=0)return 'Prince Bank';
+    if(s.indexOf('amk')>=0)return 'AMK MFI';
+    if(s.indexOf('sathapana')>=0)return 'Sathapana Bank';
+    if(s.indexOf('ppcy')>=0||s.indexOf('pp city')>=0)return 'PP City Bank';
+    if(s.indexOf('hattha')>=0)return 'Hattha Bank';
+    return '';
+  }
+  function bankName(walletId,merchantField){
+    var a=(merchantField||'').toLowerCase();
+    var byName=_bankChain(a);
+    if(byName)return byName;
+    if(a)return merchantField.toUpperCase();
+    return _bankChain((walletId||'').toLowerCase());
+  }
+  function qrTypeOf(e){
+    var A=(e||'').toLowerCase();
+    if(A.indexOf('bakong')>=0||A.indexOf('nbc.org.kh')>=0||A.indexOf('khqr@nbc')>=0||A.indexOf('khqr@')>=0)return 'KHQR';
+    if(A.indexOf('wingmoney')>=0||A.indexOf('wing.com.kh')>=0||A.indexOf('khqr@wing')>=0)return 'Wing';
+    if((e||'').indexOf('00020101')===0)return 'KHQR';
+    return 'Unknown';
+  }
+  function parseKHQR(e){
+    if(!e)return null;
+    var A=tlvParse(e);
+    var mName=A['59']||'',amt=A['54']||'',curRaw=A['53']||'';
+    var cur=curRaw==='116'?'KHR':curRaw==='840'?'USD':'';
+    var phone='';
+    if(A['62']){var h=tlvParse(A['62']);phone=h['02']||h['01']||'';}
+    var acct='',bank='',tags=['29','28','27','26','30','31','32'];
+    for(var i=0;i<tags.length;i++){
+      var m=A[tags[i]];if(!m)continue;
+      var p=tlvParse(m),y=p['00']||'',C=p['01']||'',w=p['02']||'',b=bankName(y,w);
+      if(b||C){if(!acct)acct=C||y;if(!bank)bank=b;}
+      if(acct&&bank)break;
+    }
+    if(!acct){var fb=['29','28','27','26'];for(var j=0;j<fb.length;j++){if(A[fb[j]]){acct=A[fb[j]].slice(0,40);break;}}}
+    var f=qrTypeOf(e);
+    var hasInfo=!!(mName||acct);
+    return {
+      merchantName:mName||'Unknown',
+      merchantAccount:acct||'—',
+      phone:phone,amount:amt,currency:cur,
+      qrType:(f==='Unknown'&&hasInfo)?'KHQR':f,
+      bankName:bank||(f==='Wing'?'Wing Bank':f==='KHQR'?'BAKONG / NBC':''),
+      valid:hasInfo&&/^000201/.test(e)
+    };
+  }
+  function showToast(t){
+    var old=document.querySelector('.toast');if(old)old.remove();
+    var d=document.createElement('div');d.className='toast';
+    d.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a7d985" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>'+t;
+    document.body.appendChild(d);setTimeout(function(){if(d.parentNode)d.remove();},2600);
+  }
+
+  // ---------- 读取 URL 参数 ----------
+  var params=new URLSearchParams(location.search);
+  var rawQR=params.get('rawQR')||'';
+  var parsed=rawQR?parseKHQR(rawQR):null;
+  var payeeName=params.get('name')||(parsed&&parsed.merchantName!=='Unknown'?parsed.merchantName:'')||'UNKNOWN';
+  var payeeAccount=params.get('account')||(parsed?parsed.merchantAccount:'')||'—';
+  var payeeBank=params.get('bank')||(parsed?parsed.bankName:'')||'';
+  var payeePhone=params.get('phone')||(parsed?parsed.phone:'')||'';
+  var fixedAmount=params.get('fixedAmount')||(parsed&&parsed.amount?parsed.amount:'');
+  var fixedCurrency=params.get('fixedCurrency')||(parsed&&parsed.currency?parsed.currency:'')||'';
+  var hasFixed=!!fixedAmount;
+  var qrInvalid=!!(rawQR&&parsed&&!parsed.valid);
+
+  // ---------- 读取本地账户 ----------
+  var accounts=lsGetJSON('wing_accounts',[])||[];
+  var balances=lsGetJSON('wing_account_balances',{})||{};
+  // 合并余额
+  accounts=accounts.map(function(a){
+    return Object.assign({},a,{balance:(a.id in balances)?balances[a.id]:a.balance});
+  });
+  if(!accounts.length){
+    // 兜底：本地无账户数据时给演示账户，避免页面空白（真实登录后会用 wing_accounts）
+    accounts=[{id:1,number:'104 892 150',currency:'KHR',balance:9999999},{id:2,number:'000 123 456',currency:'USD',balance:9999}];
+  }
+  var currency=fixedCurrency||'KHR';
+  var currentAccount=accounts.find(function(a){return a.currency===currency;})||accounts[0];
+  var amount=fixedAmount||'0';
+  var note='';
+
+  // ---------- 视图切换 ----------
+  var views=['amount','pin','processing','success','failed'];
+  function show(v){
+    views.forEach(function(name){
+      var el=$('view-'+name);
+      if(el) el.classList.toggle('hidden',name!==v);
+    });
+  }
+
+  // ---------- 渲染金额界面 ----------
+  function renderRecipient(){
+    $('recipientTitle').textContent='To '+payeeName;
+    var bn=(payeeBank||'Bakong');
+    $('bankAvatarName').textContent=bn;
+    $('bankAvatarInner').textContent=(payeeName||'B').split(' ').map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+  }
+  function renderAccount(){
+    if(!currentAccount){return;}
+    currency=currentAccount.currency;
+    $('fromAccountLabel').textContent=currentAccount.number+' ('+currency+')';
+    $('fromAcctNum').innerHTML=currentAccount.number+' <span class="cur">('+currency+')</span>';
+    $('fromAcctBal').innerHTML='Balance: '+moneyHTML(currency,currentAccount.balance);
+    // 币种按钮
+    document.querySelectorAll('#currencySeg button').forEach(function(b){
+      b.classList.toggle('on',b.dataset.cur===currency);
+    });
+    var kd=$('keyDot');if(kd)kd.style.visibility=currency==='USD'?'visible':'hidden';
+    $('curBadge').innerHTML=currency==='USD'?'$':rielSvg('24px');
+    // 下拉账户列表
+    var dd=$('acctDropdown');dd.innerHTML='';
+    accounts.forEach(function(a){
+      var b=document.createElement('button');
+      b.className='acct-option'+(a.id===currentAccount.id?' active':'');
+      b.innerHTML='<div><div class="num">'+a.number+' ('+a.currency+')</div><div class="bal">Balance: '+moneyHTML(a.currency,a.balance)+'</div></div>'+(a.id===currentAccount.id?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7bc143" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>':'');
+      b.addEventListener('click',function(){
+        currentAccount=a;currency=a.currency;
+        if(!hasFixed){amount='0';renderAmount();}
+        renderAccount();dd.classList.add('hidden');
+      });
+      dd.appendChild(b);
+    });
+  }
+  function renderAmount(){
+    $('amountNum').textContent=amount;
+    var v=parseAmt(amount);
+    $('payBtn').disabled=!(v>0)||!currentAccount;
+    $('amountErr').textContent='';
+  }
+
+  // ---------- 数字键盘 ----------
+  var keys=['1','2','3','4','5','6','7','8','9','.','0','back'];
+  var keypad=$('keypad');
+  keys.forEach(function(k){
+    var b=document.createElement('button');
+    b.className='key'+(k==='back'?' back':'');
+    if(k==='.')b.id='keyDot';
+    if(k==='back'){
+      b.innerHTML='<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>';
+    }else b.textContent=k;
+    b.addEventListener('click',function(){pressKey(k);});
+    keypad.appendChild(b);
+  });
+  function pressKey(k){
+    if(hasFixed)return; // 固定金额不可改
+    if(k==='back'){amount=amount.length<=1?'0':amount.slice(0,-1);}
+    else if(k==='.'){if(currency==='USD'&&amount.indexOf('.')<0)amount+='.';}
+    else{
+      // USD限制2位小数
+      if(amount.indexOf('.')>=0){var dec=amount.split('.')[1];if(dec&&dec.length>=2&&currency==='USD')return;}
+      amount=amount==='0'?k:amount+k;
+      if(amount.length>12)amount=amount.slice(0,12);
+    }
+    renderAmount();
+  }
+
+  // ---------- 币种切换 ----------
+  document.querySelectorAll('#currencySeg button').forEach(function(b){
+    b.addEventListener('click',function(){
+      if(hasFixed)return;
+      var target=b.dataset.cur;
+      var acct=accounts.find(function(a){return a.currency===target;});
+      if(!acct){showToast('No '+target+' account');return;}
+      currentAccount=acct;currency=target;amount='0';
+      renderAccount();renderAmount();
+    });
+  });
+  $('fromToggle').addEventListener('click',function(){$('acctDropdown').classList.toggle('hidden');});
+  $('noteInput').addEventListener('input',function(e){note=e.target.value;});
+
+  // 返回
+  function goBack(){
+    if(history.length>1)history.back();
+    else location.replace('/scan');
+  }
+  $('backBtn').addEventListener('click',goBack);
+
+  // ---------- PIN ----------
+  var pinValue='';
+  function renderPinDots(err){
+    var box=$('pinDots');box.innerHTML='';
+    for(var i=0;i<4;i++){
+      var d=document.createElement('div');
+      d.className='pin-dot'+(i<pinValue.length?' filled':'')+(err?' err':'');
+      box.appendChild(d);
+    }
+  }
+  var pinKeys=['1','2','3','4','5','6','7','8','9','','0','back'];
+  var pinKeypad=$('pinKeypad');
+  pinKeys.forEach(function(k){
+    var b=document.createElement('button');
+    if(k===''){b.style.visibility='hidden';return;}
+    b.className='pin-key';
+    if(k==='back'){b.textContent='⌫';b.style.fontSize='20px';}
+    else b.textContent=k;
+    b.addEventListener('click',function(){pressPin(k);});
+    pinKeypad.appendChild(b);
+  });
+  function pressPin(k){
+    $('pinErr').textContent='';
+    if(k==='back'){pinValue=pinValue.slice(0,-1);renderPinDots(false);return;}
+    if(pinValue.length>=4)return;
+    pinValue+=k;renderPinDots(false);
+    if(pinValue.length===4){
+      var correct=lsGet('wing_payment_pin','8880')||'8880';
+      setTimeout(function(){
+        if(pinValue===correct){submitPayment();}
+        else{
+          renderPinDots(true);$('pinErr').textContent='Incorrect PIN, try again';
+          setTimeout(function(){pinValue='';renderPinDots(false);},900);
+        }
+      },200);
+    }
+  }
+  $('pinCancel').addEventListener('click',function(){pinValue='';show('amount');});
+  $('payBtn').addEventListener('click',function(){
+    var v=parseAmt(amount);
+    if(!(v>0)){$('amountErr').textContent='Enter an amount to transfer';return;}
+    if(currentAccount && parseAmt(currentAccount.balance)<v){
+      $('amountErr').textContent='Insufficient balance';return;
+    }
+    pinValue='';renderPinDots(false);$('pinErr').textContent='';
+    show('pin');
+  });
+
+  // ---------- 提交付款 ----------
+  function genId(prefix){return prefix+'-'+Date.now()+'-'+Math.random().toString(16).slice(2,8);}
+  async function submitPayment(){
+    show('processing');
+    var amt=parseAmt(amount);
+    var refId=genId('bqr');
+    var phone=(lsGet('wing_phone','')+'').replace(/\D/g,'');
+    var token=lsGet('wing_token','');
+    var ok=false;var errMsg='';var serverResp=null;
+
+    // 1) 调用后端记录交易（与原App相同接口）
+    try{
+      var body={
+        phone:phone,
+        amount:amt,
+        currency:currentAccount.currency,
+        description:note||('QR Payment to '+payeeName),
+        payee_name:payeeName,
+        payee_account:payeeAccount,
+        payee_bank:payeeBank||'Bakong',
+        reference_id:refId
+      };
+      var resp=await fetch('/api/client/qr-payment',{
+        method:'POST',
+        headers:Object.assign({'Content-Type':'application/json'},token?{Authorization:'Bearer '+token}:{}),
+        body:JSON.stringify(body)
+      });
+      if(resp.ok){serverResp=await resp.json();ok=true;if(serverResp.reference_id)refId=serverResp.reference_id;}
+      else{var ej={};try{ej=await resp.json();}catch(e){}errMsg=ej.detail||('Server error ('+resp.status+')');}
+    }catch(e){
+      // 网络失败：走本地兜底（与原App local-fallback一致），仍生成本地记录
+      errMsg='';
+    }
+
+    // 2) 本地扣余额 + 写交易记录（保证App内数据一致；后端失败也本地完成，符合原local-fallback行为）
+    try{
+      var bals=lsGetJSON('wing_account_balances',{})||{};
+      var cur=parseAmt(currentAccount.balance);
+      bals[currentAccount.id]=cur-amt;
+      lsSet('wing_account_balances',bals);
+      currentAccount.balance=cur-amt;
+      var txs=lsGetJSON('wing_bank_user_transactions',[])||[];
+      var now=new Date();
+      txs.unshift({
+        id:'bqr-'+Date.now(),
+        type:'out',
+        title:'Bakong QR Pay',
+        subtitle:payeeName,
+        amount:amt,
+        date:now.toISOString().slice(0,10),
+        time:now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}),
+        fromAccount:currentAccount.number,
+        payeeName:payeeName.toUpperCase(),
+        payeeAccount:payeeAccount,
+        payeeBank:payeeBank||'Bakong',
+        payeePhone:payeePhone,
+        txId:refId,
+        status:'Paid to '+payeeName.toUpperCase(),
+        currency:currentAccount.currency
+      });
+      lsSet('wing_bank_user_transactions',txs);
+    }catch(e){}
+
+    // 3) 后端明确拒绝则失败；网络错误按本地成功（与原逻辑一致）
+    if(!ok && errMsg){
+      $('failedMsg').textContent=errMsg;
+      $('failedId').textContent=refId?('Transfer ID: '+refId):'';
+      show('failed');return;
+    }
+    renderSuccess(amt,refId,now||new Date());
+    show('success');
+  }
+
+  // ---------- 成功页 ----------
+  function renderSuccess(amt,refId,when){
+    var txt=currentAccount.currency==='USD'
+      ? '$'+amt.toFixed(2)
+      : rielSvg('0.82em')+'<span style="margin-left:4px;">'+Math.floor(amt).toLocaleString('en-US')+'</span>';
+    // 生成付款成功通知（通知中心 + 顶部横幅 + 系统通知）
+    try{
+      var curN=currentAccount.currency, party=(payeeName||'').toUpperCase();
+      var amtPlain=curN==='USD'?('$'+amt.toFixed(2)):(Math.floor(amt).toLocaleString('en-US')+' '+curN);
+      var bodyTxt='You sent '+amtPlain+' to '+party+(payeeBank?' · '+payeeBank:'');
+      var noteTx={key:'loc-'+Date.now(),dir:'out',title:'Bakong QR Pay',sub:payeeName,
+        name:party,account:payeeAccount,bank:payeeBank||'Bakong',fromAccount:currentAccount.number,
+        ref:refId,amount:amt,currency:curN,status:'completed',date:new Date(when),
+        dateStr:when.toLocaleString('en-US',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true})};
+      pushNotification({kind:'sent',title:'Payment sent',body:bodyTxt,amount:amt,currency:curN,party:party,refId:refId,tx:noteTx});
+      showNotifBanner('Payment sent · '+amtPlain, party+(payeeBank?' · '+payeeBank:''));
+      sysNotify('Payment sent · '+amtPlain, bodyTxt);
+    }catch(e){}
+    $('successAmount').innerHTML='- '+txt;
+    $('successTo').textContent='→ '+payeeName.toUpperCase();
+    var rows=[
+      ['Date',when.toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'})],
+      ['Recipient',payeeName.toUpperCase()],
+      ['Account No.',payeeAccount]
+    ];
+    if(payeePhone)rows.push(['Phone',payeePhone]);
+    if(payeeBank)rows.push(['Bank',payeeBank]);
+    rows.push(['From Account',currentAccount.number]);
+    rows.push(['Transaction ID',refId]);
+    var card=$('successDetails');card.innerHTML='';
+    rows.forEach(function(r){
+      var row=document.createElement('div');row.className='detail-row';
+      row.innerHTML='<span class="detail-k">'+r[0]+'</span><span class="detail-v"></span>';
+      row.querySelector('.detail-v').textContent=r[1];
+      card.appendChild(row);
+    });
+  }
+  $('viewTxBtn').addEventListener('click',function(){location.replace('/app/transactions.html');});
+  var _vnb=$('viewNotifBtn');if(_vnb)_vnb.addEventListener('click',function(){location.href='/app/notifications.html';});
+  $('goHomeBtn').addEventListener('click',function(){location.replace('/');});
+  $('retryBtn').addEventListener('click',function(){
+    if(qrInvalid){location.replace('/scan');return;}
+    show('amount');renderAmount();
+  });
+  $('failedBack').addEventListener('click',function(){show('amount');});
+
+  // 物理键盘支持（PIN / 金额）
+  document.addEventListener('keydown',function(e){
+    if(!$('view-pin').classList.contains('hidden')){
+      if(/^[0-9]$/.test(e.key)){e.preventDefault();pressPin(e.key);}
+      else if(e.key==='Backspace'){e.preventDefault();pressPin('back');}
+    }else if(!$('view-amount').classList.contains('hidden')&&!hasFixed){
+      if(/^[0-9]$/.test(e.key)){e.preventDefault();pressKey(e.key);}
+      else if(e.key==='Backspace'){e.preventDefault();pressKey('back');}
+      else if(e.key==='.'){e.preventDefault();pressKey('.');}
+    }
+  });
+
+  // ---------- 初始化 ----------
+  renderRecipient();
+  // 固定金额时禁用币种切换并隐藏数字键盘（与原App一致）
+  if(hasFixed){
+    $('currencySeg').classList.add('disabled');
+    $('keypad').style.display='none';
+  }
+  renderAccount();
+  renderAmount();
+  if(qrInvalid){
+    // 扫到非 Bakong/KHQR 内容：提示无效并返回重新扫码
+    $('failedMsg').textContent='This QR is not a valid Bakong / KHQR payment code.';
+    $('failedId').textContent='';
+    $('retryBtn').textContent='Scan again';
+    show('failed');
+  }else{
+    show('amount');
+  }
+})();
+</script>
+</body>
+</html>

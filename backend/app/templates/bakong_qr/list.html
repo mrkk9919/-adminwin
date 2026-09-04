@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}BAKONG QR — Wing Bank Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>BAKONG QR</h1>
+        <p class="subtitle">{{ total }} Bakong QR transactions</p>
+    </div>
+    <a href="/bakong-qr/generate" class="btn btn-primary">➕ Generate QR</a>
+</div>
+
+<form method="get" class="filter-bar">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search description or reference...">
+    <button class="btn btn-primary" type="submit">Filter</button>
+    {% if q %}<a href="/bakong-qr" class="btn">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Reference</th>
+                <th>From Account</th>
+                <th>Amount</th>
+                <th>Currency</th>
+                <th>Status</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tx in transactions %}
+            <tr>
+                <td>{{ tx.id }}</td>
+                <td><code>{{ tx.reference_id }}</code></td>
+                <td>{{ tx.from_account_number or '-' }}</td>
+                <td style="font-weight:600">
+                    {% if tx.currency == 'USD' %}${{ "%.2f"|format(tx.amount / 100) }}{% else %}៛{{ tx.amount }}{% endif %}
+                </td>
+                <td>{{ tx.currency }}</td>
+                <td><span class="badge badge-{{ tx.status }}">{{ tx.status | title }}</span></td>
+                <td>{{ tx.description or '-' }}</td>
+                <td>{{ tx.created_at[:16] }}</td>
+                <td><a href="/transactions/{{ tx.id }}" class="btn btn-sm">View</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="9" class="text-center text-muted">No Bakong QR transactions found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if total_pages > 1 %}
+<div class="pagination">
+    {% if page > 1 %}<a href="?page={{ page-1 }}{% if q %}&q={{ q }}{% endif %}" class="btn">← Prev</a>{% endif %}
+    <span>Page {{ page }} of {{ total_pages }}</span>
+    {% if page < total_pages %}<a href="?page={{ page+1 }}{% if q %}&q={{ q }}{% endif %}" class="btn">Next →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

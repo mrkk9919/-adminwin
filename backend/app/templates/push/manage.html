@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% set active = "push" %}
+{% block title %}Push Notifications — Wing Bank Admin{% endblock %}
+
+{% block content %}
+<header>
+    <h1>🔔 Push Notifications</h1>
+    <p class="subtitle">Manage FCM push notifications for mobile app users.</p>
+</header>
+
+<section class="cards">
+    <div class="card">
+        <div class="metric">{{ customers|length }}</div>
+        <div class="label">Registered devices</div>
+    </div>
+    <div class="card">
+        <div class="metric">{{ customers|selectattr('push_enabled')|list|length }}</div>
+        <div class="label">Push enabled</div>
+    </div>
+    <div class="card">
+        <div class="metric">{{ customers|selectattr('fcm_token')|list|length }}</div>
+        <div class="label">Android (FCM)</div>
+    </div>
+    <div class="card">
+        <div class="metric">{{ customers|selectattr('apns_token')|list|length }}</div>
+        <div class="label">iOS (APNs)</div>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>📝 Register Device Token</h2>
+    <p class="text-muted">Manually register a push token for testing (normally done by the mobile app).</p>
+    <form method="post" action="/push/api/register">
+        <div class="flex gap-2">
+            <label style="flex:1;">
+                Telegram ID
+                <input type="number" name="telegram_id" required placeholder="User Telegram ID">
+            </label>
+            <label style="flex:3;">
+                FCM Token (Android)
+                <input type="text" name="fcm_token" placeholder="Firebase Cloud Messaging token">
+            </label>
+            <label style="flex:1;">
+                Device Type
+                <select name="device_type">
+                    <option value="android">Android</option>
+                    <option value="ios">iOS</option>
+                </select>
+            </label>
+            <div style="flex:0; display:flex; align-items:flex-end; padding-bottom:12px;">
+                <button type="submit" class="btn btn-success">Register</button>
+            </div>
+        </div>
+    </form>
+</section>
+
+<section class="panel">
+    <h2>Send Test Notification</h2>
+    <form method="post" action="/push/api/send-test">
+        <div class="flex gap-2">
+            <label style="flex:1;">
+                Telegram ID
+                <input type="number" name="telegram_id" required placeholder="User Telegram ID">
+            </label>
+            <label style="flex:2;">
+                Title
+                <input type="text" name="title" value="测试通知" placeholder="Notification title">
+            </label>
+            <label style="flex:3;">
+                Message
+                <input type="text" name="body" value="这是一条测试推送消息" placeholder="Notification body">
+            </label>
+            <div style="flex:0; display:flex; align-items:flex-end; padding-bottom:12px;">
+                <button type="submit" class="btn btn-primary">Send Test</button>
+            </div>
+        </div>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="flex-between">
+        <h2>Registered Devices</h2>
+    </div>
+    {% if customers %}
+    <table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Phone</th>
+                <th>FCM Token</th>
+                <th>APNs Token</th>
+                <th>Push Enabled</th>
+                <th>Updated</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in customers %}
+            <tr>
+                <td>
+                    <strong>{{ c.first_name }} {{ c.last_name }}</strong>
+                    <br><span class="text-muted">@{{ c.username or '-' }}</span>
+                </td>
+                <td>{{ c.phone or '-' }}</td>
+                <td>
+                    {% if c.fcm_token %}
+                    <span class="badge badge-success">✓ Android</span>
+                    <br><code class="text-sm">{{ c.fcm_token[:20] }}...</code>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if c.apns_token %}
+                    <span class="badge badge-success">✓ iOS</span>
+                    <br><code class="text-sm">{{ c.apns_token[:20] }}...</code>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if c.push_enabled %}
+                    <span class="badge badge-success">Enabled</span>
+                    {% else %}
+                    <span class="badge badge-error">Disabled</span>
+                    {% endif %}
+                </td>
+                <td class="text-sm text-muted">{{ c.push_token_updated_at or '-' }}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline" onclick="sendTest({{ c.telegram_id }})">Test</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No devices registered yet. Users need to register their device token first.</p>
+    {% endif %}
+</section>
+
+<script>
+function sendTest(telegramId) {
+    const title = prompt("Enter notification title:", "测试通知");
+    if (title === null) return;
+    
+    const body = prompt("Enter notification body:", "这是一条测试推送消息");
+    if (body === null) return;
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/push/api/send-test';
+    
+    const idInput = document.createElement('input');
+    idInput.type = 'hidden';
+    idInput.name = 'telegram_id';
+    idInput.value = telegramId;
+    form.appendChild(idInput);
+    
+    const titleInput = document.createElement('input');
+    titleInput.type = 'hidden';
+    titleInput.name = 'title';
+    titleInput.value = title;
+    form.appendChild(titleInput);
+    
+    const bodyInput = document.createElement('input');
+    bodyInput.type = 'hidden';
+    bodyInput.name = 'body';
+    bodyInput.value = body;
+    form.appendChild(bodyInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+{% endblock %}

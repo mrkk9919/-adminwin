@@ -1,0 +1,37 @@
+RewriteEngine On
+
+# API proxy via PHP (cPanel disables mod_proxy [P] flag)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/(.*)$ api.php [L]
+
+# QR images proxy via PHP
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^qr-images/(.*)$ api.php [L]
+
+# Admin backend static resources
+RewriteRule ^static/(.*)$ http://127.0.0.1:8081/static/$1 [P,L]
+
+# Admin backend routes
+RewriteRule ^(login|logout|dashboard|customers|accounts|transactions|orders|messages|bots|sms|kyc|reports|settings|bakong-qr|bridge|push|groups|health|docs|openapi.json|redoc)/(.*)$ http://127.0.0.1:8081/$1/$2 [P,L]
+RewriteRule ^(login|logout|dashboard|customers|accounts|transactions|orders|messages|bots|sms|kyc|reports|settings|bakong-qr|bridge|push|groups|health|docs|openapi.json|redoc)$ http://127.0.0.1:8081/$1 [P,L]
+
+# PIN custom page: serve static pin.html directly (exact match; transfer PIN pages untouched)
+RewriteRule ^pin/?$ app/pin.html [L]
+
+# Frontend static files
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Frontend SPA fallback
+RewriteRule ^(.*)$ index.html [L]
+
+
+# Prevent caching of index.html so new JS filenames are always picked up
+<FilesMatch "index\.html">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+</FilesMatch>

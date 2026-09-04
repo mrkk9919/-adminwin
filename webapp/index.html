@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<script>
+// ===== 自定义页面路由拦截（my-qr / scan）=====
+(function() {
+  var ROUTES = [
+    { keys:['my-qr','myqr'], target:'/app/my-qr.html' },
+    { keys:['/scan','scan'], target:'/app/scan.html' },
+    { keys:['/qr-payment','qr-payment'], target:'/app/qr-payment.html' },
+    { keys:['/transactions','transactions'], target:'/app/transactions.html' },
+    { keys:['/transaction-detail','transaction-detail'], target:'/app/transaction-detail.html' },
+    { keys:['/notifications','notifications'], target:'/app/notifications.html' },
+    { keys:['/pin'], target:'/app/pin.html', exact:true }
+  ];
+  function matchRoute() {
+    try {
+      var hay = ((location.hash||'')+' '+(location.pathname||'')+' '+(location.search||'')+' '+(location.href||'')).toLowerCase();
+      // 新版「按账户查看交易记录」(/account/:id/transactions) 是 React 内页,交给 SPA,不劫持到自定义页
+      if(/^\/account\/[^/]+\/transactions\/?$/.test((location.pathname||'').toLowerCase())) return null;
+      // 已经在自定义页面内则不拦截
+      if (hay.indexOf('/app/scan.html')>=0 || hay.indexOf('/app/my-qr.html')>=0 || hay.indexOf('/app/qr-payment.html')>=0) return null;
+      for (var i=0;i<ROUTES.length;i++){
+        var r=ROUTES[i];
+        if(r.exact){
+          var pn=(location.pathname||'').replace(/\/+$/,'').toLowerCase();
+          for(var e=0;e<r.keys.length;e++){var ek=r.keys[e];if(ek.charAt(0)==='/'&&pn===ek)return r.target;}
+          continue;
+        }
+        for (var j=0;j<r.keys.length;j++){
+          var k=r.keys[j];
+          // scan 需要更精确匹配，避免误命中
+          if (k.charAt(0)==='/'){
+            var esc=k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').slice(1);
+            if (new RegExp('(#|\\/|\\?|=)'+esc+'(\\/|$|\\?|&|=)').test(hay) || new RegExp('\\/'+esc+'(\\/|$|\\?)').test(hay)) return r.target;
+          } else if (hay.indexOf(k)>=0) return r.target;
+        }
+      }
+    } catch(e){}
+    return null;
+  }
+  function doRedirect(){
+    var t=matchRoute();
+    if(t){ try{ if(window.stop) window.stop(); }catch(e){} var qs=(location.search||'')+(location.hash||''); location.replace(t+qs); return true; }
+    return false;
+  }
+  if(doRedirect()) return;
+  window.addEventListener('hashchange',doRedirect);
+  window.addEventListener('popstate',doRedirect);
+  var _push=history.pushState, _replace=history.replaceState;
+  history.pushState=function(){ _push.apply(this,arguments); doRedirect(); };
+  history.replaceState=function(){ _replace.apply(this,arguments); doRedirect(); };
+  var cnt=0; var timer=setInterval(function(){ if(doRedirect()||++cnt>30) clearInterval(timer); },500);
+})();
+</script>
+<meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Wing Bank</title>
+    <meta name="description" content="Wing Bank — Mobile Banking" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow:wght@600;700&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/app/assets/index-DMQjm7ax.js?v=20260904_bal4"></script>
+    <link rel="modulepreload" crossorigin href="/app/assets/vendor-CYSfZuHu.js?v=20260904_bal4">
+    <link rel="stylesheet" crossorigin href="/app/assets/index-B53k7H98.css?v=20260904_bal4">
+  </head>
+  <body>
+    <div id="root"></div>
+<script>
+// ===== Admin Bridge Client v2 =====
+(function() {
+  var POLL_INTERVAL = 3000;
+  var lastId = 0;
+  var COLORS = { info: "#3498db", success: "#27ae60", warning: "#f39c12", error: "#e74c3c" };
+  var ICONS = { info: "\u2139\uFE0F", success: "\u2705", warning: "\u26A0\uFE0F", error: "\u274C" };
+  var overlayEl = null;
+  function showLockOverlay() {
+    if (overlayEl) return;
+    overlayEl = document.createElement("div");
+    overlayEl.id = "admin-lock-overlay";
+    overlayEl.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99998;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:20px;";
+    overlayEl.innerHTML = '<div style="font-size:60px;margin-bottom:20px;">\uD83D\uDD12</div><div>Account locked by admin</div><div style="font-size:14px;color:#999;margin-top:8px;">Contact support to unlock</div>';
+    document.body.appendChild(overlayEl);
+  }
+  function removeLockOverlay() { if (overlayEl) { overlayEl.remove(); overlayEl = null; } }
+  function applyPermissions() { try { var p = JSON.parse(localStorage.getItem("wing_admin_perms") || "{}"); if (p.lock_screen) showLockOverlay(); else removeLockOverlay(); } catch(e) {} }
+  function showBanner(msg, type) {
+    var b = document.createElement("div");
+    b.style.cssText = "position:fixed;top:-80px;left:50%;transform:translateX(-50%);z-index:99999;padding:12px 20px;border-radius:12px;color:#fff;font-size:14px;font-weight:600;max-width:380px;width:calc(100%-24px);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:top 0.5s cubic-bezier(0.34,1.56,0.64,1);cursor:pointer;";
+    b.style.background = COLORS[type] || COLORS.info;
+    b.innerHTML = (ICONS[type] || "") + " " + msg;
+    b.onclick = function() { b.style.top = "-80px"; setTimeout(function(){ b.remove(); }, 500); };
+    document.body.appendChild(b);
+    requestAnimationFrame(function(){ b.style.top = "12px"; });
+    setTimeout(function(){ b.style.top = "-80px"; setTimeout(function(){ b.remove(); }, 500); }, 5000);
+  }
+  function executeCommand(cmd) {
+    switch(cmd.action) {
+      case "refresh": location.reload(); break;
+      case "navigate": if(cmd.payload) location.hash = cmd.payload; break;
+      case "show-alert": if(cmd.payload) alert(cmd.payload); break;
+      case "lock-screen": showLockOverlay(); break;
+      case "clear-data": localStorage.clear(); location.reload(); break;
+      case "update-balance": try { var b = JSON.parse(cmd.payload); localStorage.setItem("wing_account_balances", JSON.stringify(b)); showBanner("Balance updated by admin", "success"); setTimeout(function(){ location.reload(); }, 1500); } catch(e){} break;
+      case "set-permissions": try { var p = JSON.parse(cmd.payload); localStorage.setItem("wing_admin_perms", JSON.stringify(p)); if (p.lock_screen) { showLockOverlay(); showBanner("Account locked by admin", "error"); } else { removeLockOverlay(); showBanner("Permissions updated", "info"); } } catch(e){} break;
+    }
+  }
+  applyPermissions();
+  function poll() {
+    fetch("/bridge/api/commands?since_id=" + lastId).then(function(r){ return r.json(); }).then(function(data){
+      if(data.ok && data.commands) { data.commands.forEach(function(cmd){ lastId = Math.max(lastId, cmd.id); if(cmd.type === "message") showBanner(cmd.message, cmd.msg_type); else if(cmd.type === "command") executeCommand(cmd); }); }
+    }).catch(function(){});
+  }
+  setInterval(poll, POLL_INTERVAL);
+  console.log("[Admin Bridge v2] Polling /bridge/api/commands");
+})();
+</script>
+  
+
+
+</body>
+</html>

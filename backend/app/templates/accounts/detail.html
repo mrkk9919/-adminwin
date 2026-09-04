@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}{{ customer.first_name }} {{ customer.last_name }} — Accounts{% endblock %}
+{% block content %}
+<a href="/accounts" class="back-link">&larr; Back to Accounts</a>
+
+<header>
+    <div class="flex-between">
+        <div>
+            <h1>{{ customer.first_name or '' }} {{ customer.last_name or '' }}</h1>
+            <p class="subtitle">
+                {% if customer.username %}@{{ customer.username }}{% endif %}
+                {% if customer.phone %} · {{ customer.phone }}{% endif %}
+                · Telegram ID: <code>{{ customer.telegram_id }}</code>
+                · Role: <span class="badge badge-{{ customer.role }}">{{ customer.role }}</span>
+                · {% if customer.is_active %}✅ Active{% else %}❌ Inactive{% endif %}
+            </p>
+        </div>
+        <div class="flex gap-2">
+            <a href="/customers/{{ customer.telegram_id }}" class="btn btn-outline btn-sm">View Customer Profile</a>
+            <a href="/messages/{{ customer.telegram_id }}" class="btn btn-outline btn-sm">💬 Messages</a>
+        </div>
+    </div>
+</header>
+
+<div class="cards" style="margin-bottom:16px;">
+    <div class="card">
+        <div class="metric">{{ "{:,.0f}".format(customer.balance_khr) }} <small
+                style="font-size:14px;color:var(--text-muted)">KHR</small></div>
+        <div class="label">KHR Balance</div>
+    </div>
+    <div class="card">
+        <div class="metric">{{ "{:,.2f}".format(customer.balance_usd / 100) }} <small
+                style="font-size:14px;color:var(--text-muted)">USD</small></div>
+        <div class="label">USD Balance</div>
+    </div>
+    <div class="card">
+        <div class="metric">
+            {% if customer.kyc_status == 'approved' %}<span class="badge badge-success">Verified</span>
+            {% elif customer.kyc_status == 'pending' %}<span class="badge badge-pending">Pending</span>
+            {% elif customer.kyc_status == 'rejected' %}<span class="badge badge-failed">Rejected</span>
+            {% else %}<span class="badge badge-unknown">Not Submitted</span>{% endif %}
+        </div>
+        <div class="label">KYC Status</div>
+    </div>
+</div>
+
+<section class="panel">
+    <h2>Edit customer</h2>
+    <form method="post" action="/accounts/{{ customer.telegram_id }}/edit">
+        <div class="flex gap-2">
+            <label style="flex:1;">
+                Role
+                <select name="role">
+                    <option value="customer" {% if customer.role=='customer' %}selected{% endif %}>Customer</option>
+                    <option value="vip" {% if customer.role=='vip' %}selected{% endif %}>VIP</option>
+                    <option value="banned" {% if customer.role=='banned' %}selected{% endif %}>Banned</option>
+                </select>
+            </label>
+            <label style="flex:1;">
+                Phone
+                <input type="tel" name="phone" value="{{ customer.phone or '' }}" placeholder="+855...">
+            </label>
+            <label style="flex:1;">
+                Active
+                <select name="is_active">
+                    <option value="1" {% if customer.is_active %}selected{% endif %}>Yes</option>
+                    <option value="0" {% if not customer.is_active %}selected{% endif %}>No</option>
+                </select>
+            </label>
+        </div>
+        <label>
+            Notes
+            <textarea name="notes" rows="2" placeholder="Internal notes...">{{ customer.notes or '' }}</textarea>
+        </label>
+        <button type="submit" class="btn btn-primary">Save changes</button>
+    </form>
+</section>
+
+<div class="panel">
+    <div class="flex-between" style="margin-bottom:12px;">
+        <h2>Bank Accounts</h2>
+        <span class="text-muted text-sm">Manage customer accounts</span>
+    </div>
+
+    <form id="create-account-form" method="post" action="/accounts/{{ customer.telegram_id }}/create-account" style="margin-bottom:16px;">
+        <div class="flex gap-2">
+            <label style="flex:1;">
+                Account Number
+                <input type="text" name="account_number" placeholder="e.g. 104197080" required>
+            </label>
+            <label style="flex:1;">
+                Currency
+                <select name="currency">
+                    <option value="KHR">KHR</option>
+                    <option value="USD">USD</option>
+                </select>
+            </label>
+            <label style="flex:1;">
+                Type
+                <select name="account_type">
+                    <option value="wallet">wallet</option>
+                    <option value="savings">savings</option>
+                    <option value="current">current</option>
+                </select>
+            </label>
+        </div>
+        <div class="flex gap-2" style="margin-top:12px;">
+            <label style="flex:1;">
+                Balance
+                <input type="number" name="balance" value="0" min="0" step="1">
+            </label>
+            <label style="flex:1;">
+                Status
+                <select name="status">
+                    <option value="active">active</option>
+                    <option value="frozen">frozen</option>
+                    <option value="closed">closed</option>
+                </select>
+            </label>
+        </div>
+        <div style="margin-top:12px;">
+            <button type="submit" class="btn btn-primary">Create Account</button>
+        </div>
+    </form>
+
+    {% if accounts %}
+    <table>
+        <thead>
+            <tr>
+                <th>Account Number</th>
+                <th>Type</th>
+                <th>Currency</th>
+                <th>Balance</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in accounts %}
+            <tr>
+                <td><code>{{ a.account_number }}</code></td>
+                <td><span class="badge badge-unknown">{{ a.type }}</span></td>
+                <td><span class="badge {% if a.currency == 'KHR' %}badge-success{% else %}badge-vip{% endif %}">{{
+                        a.currency }}</span></td>
+                <td><strong>{% if a.currency == 'KHR' %}{{ "{:,.0f}".format(a.balance) }}{% else %}{{
+                        "{:,.2f}".format(a.balance / 100) }}{% endif %}</strong></td>
+                <td><span class="badge badge-{{ a.status }}">{{ a.status }}</span></td>
+                <td>
+                    <button class="btn btn-outline btn-sm" onclick="document.getElementById('edit-{{ a.id }}').style.display='table-row'">Edit</button>
+                    {% if a.status == 'active' %}
+                    <form method="post" action="/accounts/{{ a.id }}/freeze" style="display:inline;">
+                        <button class="btn btn-danger btn-sm">Freeze</button>
+                    </form>
+                    {% elif a.status == 'frozen' %}
+                    <form method="post" action="/accounts/{{ a.id }}/unfreeze" style="display:inline;">
+                        <button class="btn btn-success btn-sm">Unfreeze</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted text-sm">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr id="edit-{{ a.id }}" style="display:none;background:#f8f9fa;">
+                <td colspan="6" style="padding:16px;">
+                    <form method="post" action="/accounts/account/{{ a.id }}/edit">
+                        <div class="flex gap-2">
+                            <label style="flex:2;">
+                                Account Number (Wing Account)
+                                <input type="text" name="account_number" value="{{ a.account_number }}" required>
+                            </label>
+                            <label style="flex:1;">
+                                Balance
+                                <input type="number" name="balance" value="{{ a.balance }}" min="0" step="1">
+                            </label>
+                            <label style="flex:1;">
+                                Status
+                                <select name="account_status">
+                                    <option value="active" {% if a.status=='active' %}selected{% endif %}>active</option>
+                                    <option value="frozen" {% if a.status=='frozen' %}selected{% endif %}>frozen</option>
+                                    <option value="closed" {% if a.status=='closed' %}selected{% endif %}>closed</option>
+                                </select>
+                            </label>
+                            <label style="flex:1;">
+                                Type
+                                <select name="account_type">
+                                    <option value="wallet" {% if a.type=='wallet' %}selected{% endif %}>wallet</option>
+                                    <option value="savings" {% if a.type=='savings' %}selected{% endif %}>savings</option>
+                                    <option value="current" {% if a.type=='current' %}selected{% endif %}>current</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div style="margin-top:12px;">
+                            <button type="submit" class="btn btn-primary btn-sm">Save Account</button>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('edit-{{ a.id }}').style.display='none'">Cancel</button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No accounts found for this customer.</p>
+    {% endif %}
+</div>
+
+<div class="panel">
+    <h2>Recent Transactions</h2>
+    {% if transactions %}
+    <table>
+        <thead>
+            <tr>
+                <th>Direction</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Description</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tx in transactions %}
+            <tr>
+                <td>
+                    {% if tx.direction == 'in' %}
+                    <span class="badge badge-success">IN</span>
+                    {% else %}
+                    <span class="badge badge-pending">OUT</span>
+                    {% endif %}
+                </td>
+                <td><span
+                        class="badge badge-{% if tx.type == 'transfer' %}vip{% elif tx.type == 'deposit' %}success{% elif tx.type == 'withdrawal' %}pending{% else %}unknown{% endif %}">{{
+                        tx.type }}</span></td>
+                <td><strong>{% if tx.currency == 'KHR' %}{{ "{:,.0f}".format(tx.amount) }} KHR{% else %}{{
+                        "{:,.2f}".format(tx.amount / 100) }} USD{% endif %}</strong></td>
+                <td><span class="badge badge-{{ tx.status }}">{{ tx.status }}</span></td>
+                <td>{{ tx.description or '—' }}</td>
+                <td class="text-muted text-sm">{{ tx.created_at[:16] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No transactions for this customer.</p>
+    {% endif %}
+</div>
+{% endblock %}

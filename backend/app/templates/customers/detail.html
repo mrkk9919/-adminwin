@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+{% set active = "customers" %}
+{% block title %}{{ customer.first_name or customer.username or customer.telegram_id }} — Customers{% endblock %}
+
+{% block content %}
+<a class="back-link" href="/customers">← Back to customers</a>
+
+<header>
+    <h1>
+        {{ customer.first_name or '' }} {{ customer.last_name or '' }}
+        {% if customer.username %}<span class="text-muted">@{{ customer.username }}</span>{% endif %}
+    </h1>
+    <p class="subtitle">
+        Telegram ID: <code>{{ customer.telegram_id }}</code>
+        · Phone: <code>{{ customer.phone or '-' }}</code>
+        · Role: <span class="badge badge-{{ customer.role }}">{{ customer.role }}</span>
+        · {% if customer.is_active %}✅ Active{% else %}❌ Inactive{% endif %}
+    </p>
+</header>
+
+{% if request.query_params.get('balance') == 'ok' %}
+<div class="alert alert-success">✅ Balance updated successfully!</div>
+{% elif request.query_params.get('error') == 'invalid-amount' %}
+<div class="alert alert-error">❌ Invalid amount.</div>
+{% elif request.query_params.get('error') == 'no-account' %}
+<div class="alert alert-error">❌ No active account found for this currency.</div>
+{% elif request.query_params.get('error') == 'insufficient' %}
+<div class="alert alert-error">❌ Insufficient balance.</div>
+{% endif %}
+
+<div class="flex gap-2" style="margin-bottom:20px; flex-wrap:wrap;">
+    {% if customer.role != 'banned' %}
+    <form method="post" action="/customers/{{ customer.telegram_id }}/ban" style="display:inline;">
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Ban this customer?')">🚫 Ban</button>
+    </form>
+    {% else %}
+    <form method="post" action="/customers/{{ customer.telegram_id }}/unban" style="display:inline;">
+        <button type="submit" class="btn btn-success btn-sm">✓ Unban</button>
+    </form>
+    {% endif %}
+    <a href="/messages/{{ customer.telegram_id }}" class="btn btn-outline btn-sm">💬 Messages</a>
+    <button type="button" class="btn btn-primary btn-sm" onclick="showNotifyModal('{{ customer.first_name or customer.username or customer.phone or '' }}')">📤 Send Notification</button>
+</div>
+
+<!-- Accounts & Balance -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
+    <!-- Accounts -->
+    <section class="panel">
+        <h2>💳 Accounts</h2>
+        {% if accounts %}
+        <table>
+            <thead><tr><th>Account</th><th>Currency</th><th>Balance</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for a in accounts %}
+                <tr>
+                    <td><code>{{ a.account_number }}</code></td>
+                    <td><strong>{{ a.currency }}</strong></td>
+                    <td style="font-weight:600; {% if a.currency == 'USD' %}color:#00b894{% endif %}">
+                        {% if a.currency == 'USD' %}${{ "%.2f"|format(a.balance / 100) }}{% else %}៛{{ "{:,}".format(a.balance) }}{% endif %}
+                    </td>
+                    <td><span class="badge badge-{{ 'success' if a.status == 'active' else 'failed' }}">{{ a.status }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">No accounts found.</p>
+        {% endif %}
+    </section>
+
+    <!-- Add/Deduct Balance -->
+    <section class="panel">
+        <h2>💰 Adjust Balance</h2>
+        <form method="post" action="/customers/{{ customer.telegram_id }}/add-balance" id="balanceForm">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                <label>
+                    Currency
+                    <select name="currency" id="balCurrency">
+                        <option value="USD">USD ($)</option>
+                        <option value="KHR">KHR (៛)</option>
+                    </select>
+                </label>
+                <label>
+                    Amount
+                    <input type="number" name="amount" id="balAmount" step="0.01" min="0.01" placeholder="0.00" required>
+                </label>
+            </div>
+            <label style="margin-bottom:10px;">
+                Description (optional)
+                <input type="text" name="description" placeholder="e.g. Manual deposit, correction...">
+            </label>
+            <div style="display:flex; gap:8px;">
+                <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Add balance?')">➕ Add Funds</button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="deductBalance()">➖ Deduct</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<!-- Edit Profile -->
+<!-- KYC Info -->
+{% if kyc %}
+<section class="panel" style="margin-bottom:20px;">
+    <h2>🪪 KYC Information</h2>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px;">
+        <div><span class="text-muted text-sm">Full Name</span><br><strong>{{ kyc.full_name or '-' }}</strong></div>
+        <div><span class="text-muted text-sm">Document Type</span><br>{{ kyc.document_type or '-' }}</div>
+        <div><span class="text-muted text-sm">Document Number</span><br><code>{{ kyc.document_number or '-' }}</code></div>
+        <div><span class="text-muted text-sm">Date of Birth</span><br>{{ kyc.date_of_birth or '-' }}</div>
+        <div><span class="text-muted text-sm">Gender</span><br>{{ kyc.gender or '-' }}</div>
+        <div><span class="text-muted text-sm">Nationality</span><br>{{ kyc.nationality or '-' }}</div>
+        <div><span class="text-muted text-sm">Last Name (KH)</span><br>{{ kyc.last_name_kh or '-' }}</div>
+        <div><span class="text-muted text-sm">First Name (KH)</span><br>{{ kyc.first_name_kh or '-' }}</div>
+        <div><span class="text-muted text-sm">Last Name (EN)</span><br>{{ kyc.last_name_en or '-' }}</div>
+        <div><span class="text-muted text-sm">First Name (EN)</span><br>{{ kyc.first_name_en or '-' }}</div>
+        <div><span class="text-muted text-sm">Customer Tier</span><br>{{ kyc.customer_tier or '-' }}</div>
+        <div><span class="text-muted text-sm">Status</span><br><span class="badge badge-{{ 'success' if kyc.status == 'approved' else 'pending' if kyc.status == 'pending' else 'failed' }}">{{ kyc.status }}</span></div>
+        <div style="grid-column:1/-1"><span class="text-muted text-sm">Address</span><br>{{ kyc.address or '-' }}</div>
+        <div><span class="text-muted text-sm">Place of Birth - Province/City</span><br>{{ kyc.pob_province or '-' }}</div>
+        <div><span class="text-muted text-sm">Place of Birth - District/Khan</span><br>{{ kyc.pob_district or '-' }}</div>
+        <div><span class="text-muted text-sm">Place of Birth - Commune/Sangkat</span><br>{{ kyc.pob_commune or '-' }}</div>
+        <div><span class="text-muted text-sm">Place of Birth - Village</span><br>{{ kyc.pob_village or '-' }}</div>
+        <div><span class="text-muted text-sm">Registration Date</span><br>{{ customer.created_at or '-' }}</div>
+        <div><span class="text-muted text-sm">Registration Phone</span><br>+855 {{ customer.phone or '-' }}</div>
+        <div><span class="text-muted text-sm">Submitted</span><br>{{ kyc.submitted_at or '-' }}</div>
+        {% if kyc.reviewed_at %}<div><span class="text-muted text-sm">Reviewed</span><br>{{ kyc.reviewed_at }} by {{ kyc.reviewed_by }}</div>{% endif %}
+        {% if kyc.rejection_reason %}<div style="grid-column:1/-1"><span class="text-muted text-sm">Rejection Reason</span><br><span style="color:#e17055">{{ kyc.rejection_reason }}</span></div>{% endif %}
+    </div>
+</section>
+{% endif %}
+<section class="panel" style="margin-bottom:20px;">
+    <h2>✏️ Edit Customer Profile</h2>
+    <form method="post" action="/customers/{{ customer.telegram_id }}/edit">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <label>
+                First Name
+                <input type="text" name="first_name" value="{{ customer.first_name or '' }}" placeholder="First name">
+            </label>
+            <label>
+                Last Name
+                <input type="text" name="last_name" value="{{ customer.last_name or '' }}" placeholder="Last name">
+            </label>
+            <label>
+                Phone
+                <input type="tel" name="phone" value="{{ customer.phone or '' }}" placeholder="+855...">
+            </label>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <label>
+                Email
+                <input type="email" name="email" value="{{ customer.email or '' }}" placeholder="email@example.com">
+            </label>
+            <label>
+                Role
+                <select name="role">
+                    <option value="customer" {% if customer.role=='customer' %}selected{% endif %}>Customer</option>
+                    <option value="vip" {% if customer.role=='vip' %}selected{% endif %}>VIP</option>
+                    <option value="banned" {% if customer.role=='banned' %}selected{% endif %}>Banned</option>
+                </select>
+            </label>
+            <label>
+                Active
+                <select name="is_active">
+                    <option value="1" {% if customer.is_active %}selected{% endif %}>Yes</option>
+                    <option value="0" {% if not customer.is_active %}selected{% endif %}>No</option>
+                </select>
+            </label>
+        </div>
+        <label style="margin-bottom:12px;">
+            Notes (internal)
+            <textarea name="notes" rows="2" placeholder="Internal notes...">{{ customer.notes or '' }}</textarea>
+        </label>
+        <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+        <hr style="margin:16px 0; border:none; border-top:1px solid #e0e0e0;">
+        <h3 style="margin-bottom:12px;">KYC Information</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <label>
+                Last Name (KH)
+                <input type="text" name="kyc_last_name_kh" value="{{ kyc.last_name_kh or '' }}" placeholder="នាមត្រកូល">
+            </label>
+            <label>
+                First Name (KH)
+                <input type="text" name="kyc_first_name_kh" value="{{ kyc.first_name_kh or '' }}" placeholder="ឈ្មោះ">
+            </label>
+            <label>
+                Last Name (EN)
+                <input type="text" name="kyc_last_name_en" value="{{ kyc.last_name_en or '' }}" placeholder="Last name">
+            </label>
+            <label>
+                First Name (EN)
+                <input type="text" name="kyc_first_name_en" value="{{ kyc.first_name_en or '' }}" placeholder="First name">
+            </label>
+            <label>
+                Gender
+                <select name="kyc_gender">
+                    <option value="" {% if not kyc.gender %}selected{% endif %}>Select</option>
+                    <option value="Male" {% if kyc.gender=='Male' %}selected{% endif %}>Male</option>
+                    <option value="Female" {% if kyc.gender=='Female' %}selected{% endif %}>Female</option>
+                    <option value="Other" {% if kyc.gender=='Other' %}selected{% endif %}>Other</option>
+                </select>
+            </label>
+            <label>
+                Nationality
+                <input type="text" name="kyc_nationality" value="{{ kyc.nationality or '' }}" placeholder="Cambodian">
+            </label>
+            <label>
+                Date of Birth
+                <input type="date" name="kyc_date_of_birth" value="{{ kyc.date_of_birth or '' }}">
+            </label>
+            <label>
+                Customer Tier
+                <select name="kyc_customer_tier">
+                    <option value="" {% if not kyc.customer_tier %}selected{% endif %}>Select</option>
+                    <option value="Standard" {% if kyc.customer_tier=='Standard' %}selected{% endif %}>Standard</option>
+                    <option value="Silver" {% if kyc.customer_tier=='Silver' %}selected{% endif %}>Silver</option>
+                    <option value="Gold" {% if kyc.customer_tier=='Gold' %}selected{% endif %}>Gold</option>
+                    <option value="Platinum" {% if kyc.customer_tier=='Platinum' %}selected{% endif %}>Platinum</option>
+                </select>
+            </label>
+            <label>
+                Full Name
+                <input type="text" name="kyc_full_name" value="{{ kyc.full_name or '' }}" placeholder="Full name">
+            </label>
+        </div>
+        <h4 style="margin:12px 0 8px;">Place of Birth</h4>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+            <label>
+                Province / City
+                <input type="text" name="kyc_pob_province" value="{{ kyc.pob_province or '' }}" placeholder="Phnom Penh">
+            </label>
+            <label>
+                District / Khan
+                <input type="text" name="kyc_pob_district" value="{{ kyc.pob_district or '' }}" placeholder="Daun Penh">
+            </label>
+            <label>
+                Commune / Sangkat
+                <input type="text" name="kyc_pob_commune" value="{{ kyc.pob_commune or '' }}" placeholder="Wat Phnom">
+            </label>
+            <label>
+                Village
+                <input type="text" name="kyc_pob_village" value="{{ kyc.pob_village or '' }}" placeholder="Village 1">
+            </label>
+        </div>
+        <h4 style="margin:12px 0 8px;">Document & Address</h4>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <label>
+                Document Type
+                <select name="kyc_document_type">
+                    <option value="" {% if not kyc.document_type %}selected{% endif %}>Select</option>
+                    <option value="National ID" {% if kyc.document_type=='National ID' %}selected{% endif %}>National ID</option>
+                    <option value="Passport" {% if kyc.document_type=='Passport' %}selected{% endif %}>Passport</option>
+                    <option value="Driver License" {% if kyc.document_type=='Driver License' %}selected{% endif %}>Driver License</option>
+                </select>
+            </label>
+            <label>
+                Document Number
+                <input type="text" name="kyc_document_number" value="{{ kyc.document_number or '' }}" placeholder="ID number">
+            </label>
+            <label>
+                Address
+                <input type="text" name="kyc_address" value="{{ kyc.address or '' }}" placeholder="Full address">
+            </label>
+        </div>
+    </form>
+</section>
+
+<!-- Recent Transactions -->
+{% if transactions %}
+<section class="panel" style="margin-bottom:20px;">
+    <h2>💸 Recent Transactions ({{ transactions | length }})</h2>
+    <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Direction</th><th>Amount</th><th>From</th><th>To</th><th>Status</th><th>Ref</th></tr></thead>
+        <tbody>
+            {% for t in transactions %}
+            <tr>
+                <td class="text-sm text-muted">{{ t.created_at[:16] if t.created_at else '-' }}</td>
+                <td><span class="badge badge-{{ 'ok' if t.type == 'deposit' else 'warn' if t.type == 'transfer' else 'failed' }}">{{ t.type }}</span></td>
+                <td>
+                    {% if t.from_acct and t.from_acct in acct_numbers %}<span style="color:#e17055">out</span>
+                    {% else %}<span style="color:#00b894">in</span>{% endif %}
+                </td>
+                <td style="font-weight:600;">
+                    {% if t.currency == 'USD' %}${{ "%.2f"|format(t.amount / 100) }}{% else %}៛{{ "{:,}".format(t.amount) }}{% endif %}
+                </td>
+                <td><code class="text-sm">{{ t.from_acct or '-' }}</code></td>
+                <td><code class="text-sm">{{ t.to_acct or '-' }}</code></td>
+                <td><span class="badge badge-{{ 'success' if t.status == 'completed' else 'pending' }}">{{ t.status }}</span></td>
+                <td><code class="text-sm">{{ t.reference_id or '-' }}</code></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+<!-- Recent Messages -->
+{% if messages %}
+<section class="panel" style="margin-bottom:20px;">
+    <h2>💬 Recent Messages ({{ messages | length }})</h2>
+    <table>
+        <thead><tr><th>Direction</th><th>Content</th><th>Date</th></tr></thead>
+        <tbody>
+            {% for m in messages %}
+            <tr>
+                <td><span class="badge badge-{{ 'ok' if m.direction == 'in' else 'warn' }}">{{ m.direction }}</span></td>
+                <td>{{ (m.content or '')[:100] }}{% if (m.content or '') | length > 100 %}...{% endif %}</td>
+                <td class="text-sm text-muted">{{ m.created_at[:16] if m.created_at else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+<!-- Orders -->
+{% if orders %}
+<section class="panel" style="margin-bottom:20px;">
+    <h2>📦 Orders ({{ orders | length }})</h2>
+    <table>
+        <thead><tr><th>Hash</th><th>Amount</th><th>Status</th><th>Bank</th><th>Updated</th></tr></thead>
+        <tbody>
+            {% for o in orders %}
+            <tr>
+                <td><a href="/orders/{{ o.hash }}"><code>{{ o.hash }}</code></a></td>
+                <td>{{ o.amount or '-' }} {{ o.currency or '' }}</td>
+                <td><span class="badge badge-{{ 'ok' if o.status == 'success' else 'warn' if o.status == 'pending' else 'failed' }}">{{ o.status }}</span></td>
+                <td>{{ o.bank or '-' }}</td>
+                <td class="text-sm text-muted">{{ o.updated_at[:16] if o.updated_at else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+<!-- Notification Modal -->
+<div id="notify-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000;">
+    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:24px; border-radius:12px; min-width:400px; max-width:90vw;">
+        <h3 style="margin-bottom:4px;">📤 Send Notification</h3>
+        <p id="notify-target-name" class="text-muted" style="margin-bottom:12px;">To: -</p>
+        <form id="notify-form" method="post" action="/customers/{{ customer.telegram_id }}/send-notify">
+            <textarea name="message" rows="4" required placeholder="Type message..." style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;resize:vertical;font-family:inherit;"></textarea>
+            <div style="margin-top:12px; display:flex; gap:8px;">
+                <button type="submit" class="btn btn-primary">Send</button>
+                <button type="button" class="btn btn-outline" onclick="hideNotifyModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showNotifyModal(name) {
+    document.getElementById('notify-modal').style.display='block';
+    document.getElementById('notify-target-name').textContent='To: ' + name;
+}
+function hideNotifyModal() { document.getElementById('notify-modal').style.display='none'; }
+document.getElementById('notify-modal').addEventListener('click', function(e) {
+    if (e.target === this) hideNotifyModal();
+});
+
+function deductBalance() {
+    const form = document.getElementById('balanceForm');
+    const amount = document.getElementById('balAmount').value;
+    if (!amount || parseFloat(amount) <= 0) { alert('Enter a valid amount'); return; }
+    if (!confirm('Deduct ' + amount + ' ' + document.getElementById('balCurrency').value + '?')) return;
+    form.action = '/customers/{{ customer.telegram_id }}/deduct-balance';
+    form.submit();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Add Notification Group</h1>
+
+<div class="panel">
+    <form method="post" action="/groups/add">
+        <label>
+            Chat ID *
+            <input type="text" name="chat_id" required placeholder="e.g. -1001234567890" pattern="-?[0-9]+">
+            <span class="text-sm text-muted">The Telegram group chat ID (negative number). Use @userinfobot to get it.</span>
+        </label>
+
+        <label>
+            Group Name
+            <input type="text" name="chat_title" placeholder="e.g. ABA Notifications">
+            <span class="text-sm text-muted">A friendly name for this group (optional).</span>
+        </label>
+
+        <label>
+            Invite Link
+            <input type="url" name="invite_link" placeholder="https://t.me/+...">
+            <span class="text-sm text-muted">Telegram group invite link (optional). Users can join via this link.</span>
+        </label>
+
+        <div style="margin-top:20px;">
+            <button type="submit" class="btn btn-primary">Add Group</button>
+            <a href="/groups" class="btn" style="margin-left:8px;">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="panel" style="margin-top:20px;">
+    <h2>💡 How to Get Chat ID</h2>
+    <ol style="line-height:1.8;">
+        <li>Add <strong>@userinfobot</strong> to your Telegram group</li>
+        <li>The bot will send a message with the group's Chat ID</li>
+        <li>Copy the Chat ID (it's a negative number like <code>-1001234567890</code>)</li>
+        <li>Remove @userinfobot from the group (optional)</li>
+        <li>Paste the Chat ID in the form above</li>
+    </ol>
+</div>
+{% endblock %}

@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Wing Bank Admin{% endblock %}
+{% block content %}
+<header>
+    <h1>Dashboard</h1>
+    <p class="subtitle">Platform overview — real-time banking metrics</p>
+</header>
+
+<!-- Metric Cards -->
+<div class="cards">
+    <div class="card">
+        <div class="metric">{{ "{:,}".format(overview.total_users) }}</div>
+        <div class="label">Total Users</div>
+    </div>
+    <div class="card">
+        <div class="metric">{{ "{:,}".format(overview.active_accounts) }}</div>
+        <div class="label">Active Accounts</div>
+    </div>
+    <div class="card">
+        <div class="metric">{{ "{:,.0f}".format(overview.today_khr / 1) }} <small
+                style="font-size:14px;color:var(--text-muted)">KHR</small></div>
+        <div class="label">Today Volume (KHR)</div>
+    </div>
+    <div class="card">
+        <div class="metric">{{ "{:,.2f}".format(overview.today_usd / 100) }} <small
+                style="font-size:14px;color:var(--text-muted)">USD</small></div>
+        <div class="label">Today Volume (USD)</div>
+    </div>
+    <div class="card {% if overview.pending_kyc > 0 %}warn{% endif %}">
+        <div class="metric">{{ "{:,}".format(overview.pending_kyc) }}</div>
+        <div class="label">Pending KYC</div>
+    </div>
+    <div class="card">
+        <div class="metric">{{ "{:,}".format(overview.pending_tx) }}</div>
+        <div class="label">Pending Transactions</div>
+    </div>
+</div>
+
+<!-- Transaction Volume Chart (30 days) -->
+<div class="panel">
+    <h2>Transaction Volume (30 Days)</h2>
+    {% if chart_data %}
+    <div style="overflow-x:auto">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>KHR Volume</th>
+                    <th>USD Volume</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in chart_data %}
+                <tr>
+                    <td>{{ d.day }}</td>
+                    <td>{{ "{:,.0f}".format(d.khr) }} KHR</td>
+                    <td>{{ "{:,.2f}".format(d.usd / 100) }} USD</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty">No transaction data in the last 30 days.</p>
+    {% endif %}
+</div>
+
+<!-- Currency Breakdown -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+    <div class="panel">
+        <h2>Currency Distribution</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Currency</th>
+                    <th>Transactions</th>
+                    <th>Volume</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="badge badge-success">KHR</span></td>
+                    <td>{{ "{:,}".format(currency_breakdown.khr.count) }}</td>
+                    <td>{{ "{:,.0f}".format(currency_breakdown.khr.volume) }}</td>
+                </tr>
+                <tr>
+                    <td><span class="badge badge-vip">USD</span></td>
+                    <td>{{ "{:,}".format(currency_breakdown.usd.count) }}</td>
+                    <td>{{ "{:,.2f}".format(currency_breakdown.usd.volume / 100) }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Bot Health -->
+    <div class="panel">
+        <h2>Bot Health</h2>
+        {% if bots %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Bot</th>
+                    <th>Status</th>
+                    <th>Last Seen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bots %}
+                <tr>
+                    <td><strong>{{ b.bot_name }}</strong></td>
+                    <td><span class="badge badge-{{ b.status }}">{{ b.status }}</span></td>
+                    <td class="text-muted text-sm">{{ b.age_seconds }}s ago</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">No bots registered.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="panel">
+    <div class="flex-between" style="margin-bottom:12px;">
+        <h2 style="margin-bottom:0;border-bottom:none;display:inline;">Recent Transactions</h2>
+        <a href="/transactions" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    {% if recent_tx %}
+    <table>
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Status</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tx in recent_tx %}
+            <tr>
+                <td>
+                    <span
+                        class="badge badge-{% if tx.type == 'transfer' %}vip{% elif tx.type == 'deposit' %}success{% elif tx.type == 'withdrawal' %}pending{% else %}unknown{% endif %}">
+                        {{ tx.type }}
+                    </span>
+                </td>
+                <td><strong>{% if tx.currency == 'KHR' %}{{ "{:,.0f}".format(tx.amount) }} KHR{% else %}{{
+                        "{:,.2f}".format(tx.amount / 100) }} USD{% endif %}</strong></td>
+                <td>{{ tx.from_name or '—' }}</td>
+                <td>{{ tx.to_name or '—' }}</td>
+                <td><span class="badge badge-{{ tx.status }}">{{ tx.status }}</span></td>
+                <td class="text-muted text-sm">{{ tx.created_at[:16] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No transactions yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

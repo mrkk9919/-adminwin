@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Transaction #{{ tx.id }} — Wing Bank Admin{% endblock %}
+{% block content %}
+<a href="/transactions" class="back-link">&larr; Back to Transactions</a>
+
+<header>
+    <h1>Transaction #{{ tx.id }}</h1>
+    <p class="subtitle">{% if tx.type == 'bakong_qr' %}BAKONG QR{% else %}{{ tx.type | title }}{% endif %} — {{ tx.created_at[:16] }}</p>
+</header>
+
+{% if notify_result == 'ok' %}
+<div class="panel" style="border-left:4px solid var(--wing-green, #2e7d32); padding:12px 24px; margin-bottom:16px;">
+    <span class="text-sm">✅ Transaction statement sent to the customer via the ABA BANK bot.</span>
+</div>
+{% elif notify_result == 'fail' %}
+<div class="panel" style="border-left:4px solid var(--wing-red); padding:12px 24px; margin-bottom:16px;">
+    <span class="text-sm" style="color:var(--wing-red);">⚠️ Notification failed — the customer may not have
+        started the ABA bot yet (Telegram blocks first-contact messages). You can retry below.</span>
+</div>
+{% endif %}
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+    <div class="panel">
+        <h2>Transaction Details</h2>
+        <table>
+            <tr><td class="text-muted">Type</td><td><span class="badge badge-{% if tx.type == 'transfer' %}vip{% elif tx.type == 'deposit' %}success{% elif tx.type == 'withdrawal' %}pending{% elif tx.type == 'bakong_qr' %}info{% else %}unknown{% endif %}">{% if tx.type == 'bakong_qr' %}BAKONG QR{% else %}{{ tx.type | title }}{% endif %}</span></td></tr>
+            <tr><td class="text-muted">Amount</td><td><strong style="font-size:18px;">{% if tx.currency == 'KHR' %}{{ "{:,.0f}".format(tx.amount) }} KHR{% else %}{{ "{:,.2f}".format(tx.amount / 100) }} USD{% endif %}</strong></td></tr>
+            <tr><td class="text-muted">Currency</td><td><span class="badge {% if tx.currency == 'KHR' %}badge-success{% else %}badge-vip{% endif %}">{{ tx.currency }}</span></td></tr>
+            <tr><td class="text-muted">Status</td><td><span class="badge badge-{{ tx.status }}">{{ tx.status }}</span></td></tr>
+            <tr><td class="text-muted">Description</td><td>{{ tx.description or '—' }}</td></tr>
+            <tr><td class="text-muted">Reference</td><td>{{ tx.reference_id or '—' }}</td></tr>
+            <tr><td class="text-muted">Date</td><td>{{ tx.created_at }}</td></tr>
+        </table>
+    </div>
+    <div class="panel">
+        <h2>Parties</h2>
+        <h3 style="font-size:13px; margin:12px 0 8px; color:var(--text-muted);">FROM</h3>
+        {% if tx.from_account %}
+        <table>
+            <tr><td class="text-muted">Account</td><td><code>{{ tx.from_account.account_number }}</code></td></tr>
+            <tr><td class="text-muted">Name</td><td><a href="/customers/{{ tx.from_account.customer_id }}">{{ tx.from_account.first_name }} {{ tx.from_account.last_name }}</a></td></tr>
+        </table>
+        {% else %}
+        <p class="text-muted text-sm">N/A (e.g. external deposit)</p>
+        {% endif %}
+
+        <h3 style="font-size:13px; margin:20px 0 8px; color:var(--text-muted);">TO</h3>
+        {% if tx.to_account %}
+        <table>
+            <tr><td class="text-muted">Account</td><td><code>{{ tx.to_account.account_number }}</code></td></tr>
+            <tr><td class="text-muted">Name</td><td><a href="/customers/{{ tx.to_account.customer_id }}">{{ tx.to_account.first_name }} {{ tx.to_account.last_name }}</a></td></tr>
+        </table>
+        {% elif tx.external_to %}
+        <table>
+            <tr><td class="text-muted">Beneficiary</td><td><code>{{ tx.external_to }}</code></td></tr>
+            <tr><td class="text-muted">Note</td><td class="text-sm" style="color:var(--wing-red);">External recipient (not in system)<br>
+            <span style="color:var(--wing-red); font-size:11px;">The link to the first account (BAKONG) is currently undergoing service upgrades. Please wait patiently.</span></td></tr>
+        </table>
+        {% else %}
+        <p class="text-muted text-sm">N/A (e.g. withdrawal)</p>
+        {% endif %}
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
+    <div class="panel">
+        <h2>Customer Statement Preview</h2>
+        <pre style="white-space:pre-wrap; font-family:inherit; background:var(--bg-muted, #f5f5f5); padding:12px; border-radius:6px; font-size:13px; line-height:1.6;">{{ statement_preview }}</pre>
+    </div>
+    <div class="panel">
+        <h2>Send Notification</h2>
+        {% if notify_targets %}
+        <p class="text-sm text-muted">Send this transaction statement to a customer via Telegram and/or SMS.</p>
+        {% for target in notify_targets %}
+        <form method="post" action="/transactions/{{ tx.id }}/notify" style="margin-bottom:12px; padding:8px; border:1px solid var(--border, #e0e0e0); border-radius:6px;">
+            <input type="hidden" name="customer_id" value="{{ target.customer_id }}">
+            <div style="margin-bottom:6px;">
+                <strong>{{ target.label }}</strong>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <select name="notify_method" style="flex:1; padding:6px; border:1px solid #ddd; border-radius:4px; font-size:12px;">
+                    <option value="telegram">Telegram only</option>
+                    <option value="sms">SMS only</option>
+                    <option value="both">Both Telegram + SMS</option>
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm">📤 Send</button>
+            </div>
+        </form>
+        {% endfor %}
+        {% else %}
+        <p class="empty">No linked customers found for this transaction.<br>
+            Notifications are sent to the holder of the from/to account.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

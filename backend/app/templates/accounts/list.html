@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Accounts — Wing Bank Admin{% endblock %}
+{% block content %}
+<header>
+    <div class="flex-between">
+        <div>
+            <h1>Accounts</h1>
+            <p class="subtitle">{{ "{:,}".format(total) }} customer accounts</p>
+        </div>
+    </div>
+</header>
+
+<!-- Filters -->
+<form class="search-bar" method="get" action="/accounts">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search by name, username, phone, Telegram ID...">
+    <select name="status" style="width:130px">
+        <option value="">All Status</option>
+        <option value="active" {% if status_filter=='active' %}selected{% endif %}>Active</option>
+        <option value="suspended" {% if status_filter=='suspended' %}selected{% endif %}>Suspended</option>
+        <option value="pending" {% if status_filter=='pending' %}selected{% endif %}>Pending</option>
+    </select>
+    <button class="btn btn-primary" type="submit">Filter</button>
+    {% if q or status_filter %}<a href="/accounts" class="btn btn-outline">Clear</a>{% endif %}
+</form>
+
+<div class="panel">
+    {% if accounts %}
+    <table>
+        <thead>
+            <tr>
+                <th>Customer</th>
+                <th>KHR Balance</th>
+                <th>USD Balance</th>
+                <th>Accounts</th>
+                <th>Status</th>
+                <th>KYC</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in accounts %}
+            <tr>
+                <td>
+                    <a href="/accounts/{{ a.telegram_id }}">
+                        <strong>{{ a.first_name or '' }} {{ a.last_name or '' }}</strong>
+                    </a>
+                    <br><span class="text-muted text-sm">
+                        {% if a.username %}@{{ a.username }}{% endif %}
+                        {% if a.phone %} · {{ a.phone }}{% endif %}
+                    </span>
+                </td>
+                <td><strong>{{ "{:,.0f}".format(a.balance_khr) }}</strong> <span class="text-muted text-sm">KHR</span>
+                </td>
+                <td><strong>{{ "{:,.2f}".format(a.balance_usd / 100) }}</strong> <span
+                        class="text-muted text-sm">USD</span></td>
+                <td>
+                    <span class="text-sm">
+                        {{ a.total_acct_count }} total
+                        {% if a.frozen_acct_count > 0 %}
+                        <span class="badge badge-frozen">{{ a.frozen_acct_count }} frozen</span>
+                        {% endif %}
+                    </span>
+                    {% if a.usd_account %}<br><code class="text-xs">USD: {{ a.usd_account }}</code>{% endif %}
+                    {% if a.khr_account %}<br><code class="text-xs">KHR: {{ a.khr_account }}</code>{% endif %}
+                </td>
+                <td><span class="badge badge-{{ a.customer_status }}">{{ a.customer_status }}</span></td>
+                <td>
+                    {% if a.kyc_status == 'approved' %}<span class="badge badge-success">Verified</span>
+                    {% elif a.kyc_status == 'pending' %}<span class="badge badge-pending">Pending</span>
+                    {% elif a.kyc_status == 'rejected' %}<span class="badge badge-failed">Rejected</span>
+                    {% else %}<span class="badge badge-unknown">-</span>{% endif %}
+                </td>
+                <td>
+                    <a href="/accounts/{{ a.telegram_id }}" class="btn btn-outline btn-sm">View</a>
+                    <a href="/accounts/{{ a.telegram_id }}#accounts" class="btn btn-primary btn-sm">Edit Wing</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if pages > 1 %}
+    <div class="flex-between mt-4">
+        {% if page > 1 %}<a href="?q={{ q }}&status={{ status_filter }}&page={{ page - 1 }}"
+            class="btn btn-outline btn-sm">Prev</a>{% endif %}
+        <span class="text-muted text-sm">
+            Page {{ page }} / {{ pages }}
+            (showing {{ ((page - 1) * 20) + 1 }}-{{ [page * 20, total] | min }} of {{ "{:,}".format(total) }})
+        </span>
+        {% if page < pages %}<a href="?q={{ q }}&status={{ status_filter }}&page={{ page + 1 }}"
+            class="btn btn-outline btn-sm">Next</a>{% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="empty">No accounts found.</p>
+    {% endif %}
+</div>
+{% endblock %}

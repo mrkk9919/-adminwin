@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% set active = "sms" %}
+{% block title %}SMS Logs — Wing Bank Admin{% endblock %}
+
+{% block content %}
+<a class="back-link" href="/sms">← Back to SMS</a>
+
+<header>
+    <h1>SMS Logs</h1>
+    <p class="subtitle">{{ logs | length }} log entry(ies){% if phone %} for "{{ phone }}"{% endif %}.</p>
+</header>
+
+<form class="search-bar" method="get" action="/sms/logs">
+    <input type="search" name="phone" value="{{ phone }}" placeholder="Search by phone number...">
+    <button type="submit" class="btn btn-primary">Search</button>
+    {% if phone %}<a href="/sms/logs" class="btn btn-outline">Clear</a>{% endif %}
+</form>
+
+{% if logs %}
+<div class="panel" style="padding: 0;">
+    <table>
+        <thead>
+            <tr>
+                <th>Phone</th>
+                <th>OTP</th>
+                <th>Message</th>
+                <th>Provider</th>
+                <th>Provider ID</th>
+                <th>Status</th>
+                <th>Cost</th>
+                <th>Error</th>
+                <th>Sent at</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in logs %}
+            <tr>
+                <td>{{ l.phone }}</td>
+                <td><code>{{ l.otp_code or '-' }}</code></td>
+                <td class="text-sm">{{ l.message or '-' }}</td>
+                <td>{{ l.provider }}</td>
+                <td class="text-sm">{{ l.provider_msg_id or '-' }}</td>
+                <td><span class="badge badge-{{ l.status }}">{{ l.status }}</span></td>
+                <td>{{ "%.2f" | format((l.cost_cents or 0) / 100) }}$</td>
+                <td class="text-sm" style="color: var(--danger);">{{ l.error or '' }}</td>
+                <td class="text-sm text-muted">{{ l.created_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="panel">
+    <p class="empty">No SMS logs found{% if phone %} for "{{ phone }}"{% endif %}.</p>
+</div>
+{% endif %}
+{% endblock %}

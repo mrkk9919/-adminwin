@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+<title>Confirm PIN · Wing Bank</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :root{
+    --ink:#2f2b3c; --sans:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --mono:'DM Mono',ui-monospace,monospace;
+    --fill:#7164a8; --ok:#74b72e; --err:#e56b79; --line:#d7cfda;
+  }
+  html,body{min-height:100%;}
+  body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;
+    background:radial-gradient(circle at 16% 15%,rgba(181,235,48,.20),transparent 25rem),#f4efe7;}
+  button,input{font:inherit;}
+  .pin-app{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:0;}
+  .phone{width:100%;min-height:100dvh;background:#f6f1f5;position:relative;overflow:hidden;display:flex;flex-direction:column;}
+  /* ============ Hero (pure CSS) ============ */
+  .hero{background:#b7ed2f;min-height:306px;padding:25px 25px 20px;position:relative;overflow:hidden;}
+  .hero::before,.hero::after{content:"";pointer-events:none;border:1px solid rgba(47,43,60,.10);border-radius:50%;position:absolute;}
+  .hero::before{width:220px;height:220px;top:-120px;right:-88px;}
+  .hero::after{width:330px;height:330px;top:-185px;right:-140px;}
+  .status-bar{font-family:var(--mono);letter-spacing:-.02em;z-index:2;color:rgba(47,43,60,.78);
+    justify-content:space-between;align-items:center;font-size:10px;display:flex;position:relative;}
+  .status-icons{align-items:center;gap:7px;display:flex;}
+  .status-dot{opacity:.7;background:var(--ink);border-radius:50%;width:5px;height:5px;}
+  .battery{border:1px solid rgba(47,43,60,.70);border-radius:3px;align-items:center;width:21px;height:10px;padding:1px;display:flex;}
+  .battery span{background:var(--ink);border-radius:1px;width:75%;height:100%;display:block;}
+  .back{position:relative;z-index:3;width:30px;height:30px;border-radius:50%;border:1px solid rgba(47,43,60,.18);
+    background:rgba(255,255,255,.35);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+  .back:active{transform:scale(.92);}
+  .brand-row{z-index:2;justify-content:space-between;align-items:center;margin-top:29px;display:flex;position:relative;}
+  .wordmark{letter-spacing:.18em;font-size:12px;font-weight:800;line-height:1;}
+  .mission-tag{letter-spacing:.08em;text-transform:uppercase;border:1px solid rgba(47,43,60,.32);
+    border-radius:999px;padding:7px 11px;font-size:9px;font-weight:800;}
+  .hero-copy{z-index:2;max-width:265px;margin-top:27px;position:relative;}
+  .hero-kicker{font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;opacity:.70;margin:0 0 11px;font-size:10px;}
+  .hero h1{letter-spacing:-.07em;margin:0;font-size:clamp(28px,8vw,39px);font-weight:800;line-height:.99;}
+  .hero h1 span{display:block;}
+  .hero-sub{color:rgba(47,43,60,.75);max-width:220px;margin:15px 0 0;font-size:12px;font-weight:600;line-height:1.45;}
+  .hero-sub strong{font-weight:800;}
+  /* CSS character */
+  .character{z-index:1;width:128px;height:112px;animation:floaty 4.5s ease-in-out infinite;position:absolute;bottom:17px;right:19px;}
+  .character-shadow{background:rgba(47,43,60,.15);border-radius:50%;width:91px;height:9px;position:absolute;bottom:1px;left:18px;}
+  .character-body{background:#f3e9ef;border:2px solid var(--ink);border-radius:49% 48% 43% 45%;width:70px;height:82px;position:absolute;bottom:7px;right:13px;transform:rotate(4deg);}
+  .character-body::before,.character-body::after{content:"";border-left:2px solid var(--ink);border-radius:50%;width:9px;height:21px;position:absolute;bottom:-14px;}
+  .character-body::before{left:23px;transform:rotate(10deg);}
+  .character-body::after{right:20px;transform:rotate(-10deg);}
+  .eye{background:#fb6378;border:2px solid var(--ink);border-radius:50%;width:19px;height:23px;position:absolute;top:27px;}
+  .eye::after{content:"";background:var(--ink);border-radius:50%;width:5px;height:5px;position:absolute;top:4px;left:4px;}
+  .eye.left{left:14px;}.eye.right{left:38px;}
+  .beak{border-top:10px solid #eea51f;border-left:7px solid transparent;border-right:7px solid transparent;width:0;height:0;position:absolute;top:50px;left:29px;}
+  .wing{background:#f3e9ef;border:2px solid var(--ink);border-radius:58% 35% 52% 45%;width:32px;height:23px;position:absolute;top:39px;left:-16px;transform:rotate(-28deg);}
+  .bags{align-items:flex-end;gap:2px;display:flex;position:absolute;bottom:8px;left:1px;}
+  .bag{border:2px solid var(--ink);border-radius:2px 2px 5px 5px;width:16px;height:22px;transform:rotate(-7deg);}
+  .bag:first-child{background:#4ea5d8;height:25px;}
+  .bag:nth-child(2){background:#f2b32d;transform:rotate(3deg);}
+  .bag:nth-child(3){background:#f0649a;height:26px;transform:rotate(9deg);}
+  .bag::before{content:"";border-top:2px solid var(--ink);border-radius:50%;width:8px;height:6px;margin:-6px auto 0;display:block;}
+  @keyframes floaty{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(1deg)}}
+  /* ============ Content ============ */
+  .content{z-index:2;background:#f6f1f5;border-radius:25px 25px 0 0;flex:1;min-height:calc(100dvh - 306px);
+    margin-top:-1px;padding:20px 25px 26px;position:relative;display:flex;flex-direction:column;}
+  .content-topline{justify-content:space-between;align-items:center;display:flex;}
+  .secure-note{color:#766d7f;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;align-items:center;gap:6px;font-size:9px;display:flex;}
+  .secure-note svg{color:#8374ae;width:12px;height:12px;}
+  .forgot{appearance:none;color:#7065a3;cursor:pointer;background:none;border:0;border-bottom:1px solid transparent;
+    padding:4px 0;font-size:11px;font-weight:800;transition:color .2s,border-color .2s;}
+  .forgot:active{transform:translateY(1px);}
+  .confirm-copy{text-align:center;margin:35px auto 0;}
+  .confirm-copy h2{letter-spacing:-.035em;margin:0;font-size:17px;font-weight:700;}
+  .confirm-copy p{color:#817884;margin:7px auto 0;font-size:12px;line-height:1.45;}
+  .account-number{font-family:var(--mono);color:#625b72;letter-spacing:.05em;font-size:11px;}
+  .pin-dots{justify-content:center;gap:15px;margin-top:22px;display:flex;}
+  .pin-dot{background:transparent;border:1.5px solid var(--line);border-radius:50%;width:16px;height:16px;
+    transition:transform .22s,background-color .22s,border-color .22s;}
+  .pin-dot.filled{background:var(--fill);border-color:var(--fill);transform:scale(1.08);}
+  .pin-dot.ok{background:var(--ok);border-color:var(--ok);}
+  .pin-dot.bad{background:var(--err);border-color:var(--err);}
+  .pin-dots.shake{animation:shake .4s ease;}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+  .pin-status{text-align:center;color:#7164a8;min-height:17px;margin:9px 0 0;font-size:11px;font-weight:700;}
+  .pin-spacer{flex:1;min-height:10px;}
+  .keypad{grid-template-columns:repeat(3,1fr);gap:2px 8px;max-width:354px;width:100%;margin:17px auto 0;display:grid;}
+  .key{color:#302c40;cursor:pointer;background:none;border:0;border-radius:15px;flex-direction:column;justify-content:center;
+    align-items:center;height:57px;transition:background-color .16s,transform .16s;display:flex;}
+  .key:active{background:rgba(113,100,168,.17);transform:scale(.94);}
+  .key-number{font-family:var(--sans);letter-spacing:-.06em;font-size:25px;font-weight:600;line-height:1;}
+  .key-letters{font-family:var(--mono);letter-spacing:.14em;color:#9b91a1;margin-top:4px;font-size:7px;}
+  .key svg{stroke-width:1.7;width:26px;height:26px;}
+  .delete-key{color:#60566c;}
+  .biometric-key{color:#7164a8;}
+  /* >=620 桌面手机框 */
+  @media (min-width:620px){
+    .pin-app{padding:30px;}
+    .phone{border-radius:33px;width:min(100%,430px);min-height:min(880px,calc(100dvh - 60px));
+      box-shadow:0 22px 70px rgba(65,54,68,.18),0 3px 10px rgba(65,54,68,.08);}
+    .hero{min-height:321px;padding-left:29px;padding-right:29px;}
+    .content{min-height:559px;padding-left:29px;padding-right:29px;}
+  }
+  /* 矮屏 */
+  @media (max-height:730px) and (max-width:619px){
+    .hero{min-height:272px;padding-top:18px;}
+    .brand-row{margin-top:17px;} .hero-copy{margin-top:19px;}
+    .content{min-height:calc(100dvh - 272px);padding-top:16px;}
+    .confirm-copy{margin-top:24px;} .key{height:49px;} .keypad{margin-top:10px;}
+  }
+</style>
+</head>
+<body>
+<main class="pin-app">
+  <section class="phone" aria-label="PIN confirmation">
+    <header class="hero">
+      <div class="status-bar">
+        <button class="back" id="backBtn" type="button" aria-label="Back">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div class="status-icons" aria-hidden="true">
+          <span class="status-dot"></span><span class="status-dot"></span><span class="status-dot"></span>
+          <span>▮▮</span><span class="battery"><span></span></span>
+        </div>
+      </div>
+      <div class="brand-row">
+        <div class="wordmark">CINECLUB</div>
+        <div class="mission-tag">Mission 01 / 03</div>
+      </div>
+      <div class="hero-copy">
+        <p class="hero-kicker">Good evening, Soel</p>
+        <h1>Let’s make<span>movie magic.</span></h1>
+        <p class="hero-sub">Book Legend Cinema tickets to complete your mission and earn <strong>4,000 Wingpoints.</strong></p>
+      </div>
+      <div class="character" aria-hidden="true">
+        <span class="character-shadow"></span>
+        <div class="bags"><span class="bag"></span><span class="bag"></span><span class="bag"></span></div>
+        <div class="character-body">
+          <span class="wing"></span><span class="eye left"></span><span class="eye right"></span><span class="beak"></span>
+        </div>
+      </div>
+    </header>
+    <section class="content">
+      <div class="content-topline">
+        <div class="secure-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Private &amp; Secure
+        </div>
+        <button class="forgot" id="forgotBtn" type="button">Forgot your PIN?</button>
+      </div>
+      <div class="confirm-copy">
+        <h2 id="confirmTitle">Confirm your account</h2>
+        <p>Enter the PIN for account<br><span class="account-number" id="acctNo">104 892 115</span> to continue</p>
+      </div>
+      <div class="pin-dots" id="dots" role="group" aria-label="PIN dots">
+        <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+      </div>
+      <p class="pin-status" id="status" aria-live="polite">&nbsp;</p>
+      <div class="pin-spacer"></div>
+      <div class="keypad" id="keypad" role="group" aria-label="PIN keypad">
+        <button class="key" data-k="1"><span class="key-number">1</span></button>
+        <button class="key" data-k="2"><span class="key-number">2</span><span class="key-letters">ABC</span></button>
+        <button class="key" data-k="3"><span class="key-number">3</span><span class="key-letters">DEF</span></button>
+        <button class="key" data-k="4"><span class="key-number">4</span><span class="key-letters">GHI</span></button>
+        <button class="key" data-k="5"><span class="key-number">5</span><span class="key-letters">JKL</span></button>
+        <button class="key" data-k="6"><span class="key-number">6</span><span class="key-letters">MNO</span></button>
+        <button class="key" data-k="7"><span class="key-number">7</span><span class="key-letters">PQRS</span></button>
+        <button class="key" data-k="8"><span class="key-number">8</span><span class="key-letters">TUV</span></button>
+        <button class="key" data-k="9"><span class="key-number">9</span><span class="key-letters">WXYZ</span></button>
+        <button class="key biometric-key" id="bioBtn" type="button" aria-label="Use biometric sign in">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13c0 4.38-1.5 7.5-2 8"/><path d="M9.36 14.5c.15 1.8.34 3.3.5 4.5"/><path d="M6.5 13.5c.5 2 .5 4 .5 4"/><path d="M4 8a8 8 0 0 1 16 0"/><path d="M12 7v4"/><path d="M20 12c0 1.5-.12 3-.36 4.5"/></svg>
+        </button>
+        <button class="key" data-k="0"><span class="key-number">0</span></button>
+        <button class="key delete-key" id="delBtn" type="button" aria-label="Delete last digit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 0 0-1.344.519l-6.328 5.74a1 1 0 0 0 0 1.481l6.328 5.741A2 2 0 0 0 10 19h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="m12 9 6 6"/><path d="m18 9-6 6"/></svg>
+        </button>
+      </div>
+    </section>
+  </section>
+</main>
+<script>
+(function(){
+  function $(id){return document.getElementById(id);}
+  var PIN_LEN=4;
+  function storedPin(){try{return localStorage.getItem('wing_payment_pin')||'8880';}catch(e){return '8880';}}
+  function primaryAccount(){
+    try{
+      var q=new URLSearchParams(location.search).get('account');
+      if(q)return q;
+      var p=localStorage.getItem('wing_primary_account');
+      if(p)return p;
+    }catch(e){}
+    return '104 892 115';
+  }
+  $('acctNo').textContent=primaryAccount();
+  var pin='',locked=false,dots=$('dots'),dotEls=Array.prototype.slice.call(dots.querySelectorAll('.pin-dot')),statusEl=$('status');
+  function render(mode){
+    dotEls.forEach(function(d,i){
+      d.classList.remove('filled','ok','bad');
+      if(mode==='ok'){if(i<PIN_LEN)d.classList.add('ok');}
+      else if(mode==='bad'){if(i<pin.length)d.classList.add('bad');}
+      else if(i<pin.length)d.classList.add('filled');
+    });
+  }
+  function goNext(){
+    // 与 App 一致：PIN 正确后进入账户页
+    setTimeout(function(){location.replace('/my-account');},320);
+  }
+  function press(d){
+    if(locked)return;
+    if(d==='del'){pin=pin.slice(0,-1);statusEl.innerHTML='&nbsp;';render();return;}
+    if(/^[0-9]$/.test(d)&&pin.length<PIN_LEN){
+      pin+=d;render();
+      if(pin.length===PIN_LEN){
+        locked=true;
+        if(pin===storedPin()){render('ok');goNext();}
+        else{
+          render('bad');dots.classList.remove('shake');void dots.offsetWidth;dots.classList.add('shake');
+          statusEl.textContent='Incorrect PIN, please try again';
+          setTimeout(function(){pin='';locked=false;render();statusEl.innerHTML='&nbsp;';},1000);
+        }
+      }
+    }
+  }
+  $('keypad').addEventListener('click',function(e){
+    var btn=e.target.closest('button');if(!btn)return;
+    if(btn.id==='bioBtn'){bio();return;}
+    if(btn.id==='delBtn'){press('del');return;}
+    if(btn.dataset.k)press(btn.dataset.k);
+  });
+  function bio(){
+    if(locked)return;locked=true;pin=storedPin();render('ok');
+    statusEl.textContent='Verifying…';
+    setTimeout(function(){location.replace('/my-account');},1200);
+  }
+  $('forgotBtn').addEventListener('click',function(){
+    statusEl.textContent="No worries. We'll send a reset link to your registered number.";
+  });
+  $('backBtn').addEventListener('click',function(){
+    if(history.length>1){try{history.back();return;}catch(e){}}
+    location.replace('/');
+  });
+  window.addEventListener('keydown',function(e){
+    if(/^[0-9]$/.test(e.key))press(e.key);
+    else if(e.key==='Backspace'||e.key==='Delete')press('del');
+  });
+})();
+</script>
+</body>
+</html>

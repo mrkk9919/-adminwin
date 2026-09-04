@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<title>Transactions</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{font-family:'Plus Jakarta Sans',ui-sans-serif,system-ui,-apple-system,sans-serif;
+    background:linear-gradient(180deg,#b9dfa3 0%,#dcedcf 10%,#edf2eb 24%,#edf2eb 100%);background-attachment:fixed;color:#243632;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;position:relative;display:flex;flex-direction:column;}
+  /* 顶栏 */
+  .top{padding:max(20px,env(safe-area-inset-top)) 14px 10px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg,rgba(216,236,207,.95),rgba(216,236,207,.78));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+  .top .back{width:36px;height:36px;border-radius:50%;border:1px solid #cbd9c9;background:rgba(244,248,241,.92);color:#426558;
+    display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 3px 10px rgba(67,100,69,.08);}
+  .top .back:active{transform:scale(.9);}
+  .top h1{font-size:19px;font-weight:600;flex:1;text-align:center;letter-spacing:-.025em;color:#263b35;}
+  .top .r{width:40px;flex:none;}
+  .bell-btn{position:relative;width:36px;height:36px;border-radius:50%;border:1px solid #cbd9c9;background:rgba(244,248,241,.92);color:#426558;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 3px 10px rgba(67,100,69,.08);}
+  .bell-btn:active{transform:scale(.9);}
+  .bell-badge{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#2f78a6;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #dcedcf;}
+  .bell-badge.hidden{display:none;}
+  /* 筛选 */
+  .seg-wrap{padding:10px 16px 4px;}
+  .seg{display:flex;background:rgba(255,255,255,.55);border:1px solid #d1dfd0;border-radius:999px;padding:4px;gap:4px;}
+  .seg button{flex:1;padding:9px 0;border-radius:999px;font-size:13px;font-weight:600;color:#5d766c;transition:.15s;}
+  .seg button.on{background:#fff;color:#3f7a22;box-shadow:0 2px 8px rgba(61,84,63,.12);}
+  /* 汇总条 */
+  .summary{display:flex;gap:10px;padding:8px 16px 2px;}
+  .sum-card{flex:1;background:#fcfcf8;border:1px solid #d7d9d3;border-radius:18px;padding:12px 14px;box-shadow:0 8px 22px rgba(61,84,63,.08);}
+  .sum-card .lab{font-size:11px;color:#78817e;font-weight:600;}
+  .sum-card .val{font-size:16px;font-weight:700;margin-top:4px;letter-spacing:-.01em;}
+  .sum-card .val.in{color:#2f8f4e;}
+  .sum-card .val.out{color:#303b3a;}
+  /* 列表 */
+  .list{flex:1;padding:8px 14px 120px;}
+  .day-group{margin-top:14px;}
+  .day-label{font-size:11px;font-weight:700;color:#718c7b;letter-spacing:.5px;text-transform:uppercase;padding:4px 6px 8px;}
+  .tx{background:#fcfcf8;border:1px solid #d7d9d3;border-radius:20px;margin-bottom:10px;overflow:hidden;box-shadow:0 10px 26px rgba(61,84,63,.10);transition:transform .12s;}
+  .tx:active{transform:scale(.985);}
+  .tx-main{display:flex;align-items:center;gap:12px;padding:14px;width:100%;text-align:left;}
+  .tx-ico{width:46px;height:46px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;}
+  .tx-ico.in{background:#e3f3d6;color:#4f9b46;}
+  .tx-ico.out{background:#eef1ea;color:#63806f;}
+  .tx-mid{flex:1;min-width:0;}
+  .tx-title{display:block;font-size:14px;font-weight:600;color:#303b3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tx-sub{display:block;font-size:12px;color:#78817e;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tx-right{text-align:right;flex:none;max-width:46%;}
+  .tx-amt{display:block;font-size:15px;font-weight:700;white-space:nowrap;letter-spacing:-.01em;}
+  .tx-amt.in{color:#2f8f4e;}
+  .tx-amt.out{color:#303b3a;}
+  .tx-st{display:block;font-size:10.5px;color:#93a097;margin-top:3px;font-weight:600;}
+  .tx-detail{display:none;border-top:1px dashed #d6d8d2;padding:11px 14px;background:#fafbf7;}
+  .tx.open .tx-detail{display:block;}
+  .dx{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:3px 0;}
+  .dx .k{color:#78817e;flex:none;}
+  .dx .v{color:#4c5653;font-weight:600;text-align:right;word-break:break-all;}
+  .badge-ok{color:#2f8f4e!important;}
+  /* 状态页 */
+  .state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 30px;color:#718c7b;}
+  .state .circle{width:84px;height:84px;border-radius:50%;background:#fcfcf8;border:1px solid #d7d9d3;display:flex;align-items:center;justify-content:center;margin-bottom:18px;color:#a9b6ad;box-shadow:0 8px 22px rgba(61,84,63,.08);}
+  .state h3{font-size:16px;color:#46544d;font-weight:700;margin-bottom:6px;}
+  .state p{font-size:13px;line-height:1.55;}
+  .spinner{width:46px;height:46px;border-radius:50%;border:3px solid #d3e2cc;border-top-color:#7bc143;animation:spin .85s linear infinite;margin-bottom:16px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .hidden{display:none!important;}
+  .retry{margin-top:16px;background:#7bc143;color:#fff;font-weight:700;font-size:13px;padding:11px 24px;border-radius:999px;box-shadow:0 6px 16px rgba(123,193,67,.35);}
+  .retry:active{transform:scale(.96);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <button class="back" id="backBtn" aria-label="Back">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <h1>Transactions</h1>
+    <button class="bell-btn" id="notifBtn" aria-label="Notifications">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+      <span class="bell-badge hidden" id="bellBadge">0</span>
+    </button>
+  </div>
+
+  <div class="seg-wrap">
+    <div class="seg" id="filterSeg">
+      <button data-f="all" class="on">All</button>
+      <button data-f="in">Received</button>
+      <button data-f="out">Sent</button>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="sum-card"><div class="lab">Total Received</div><div class="val in" id="sumIn">—</div></div>
+    <div class="sum-card"><div class="lab">Total Sent</div><div class="val out" id="sumOut">—</div></div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="state hidden" id="loadingState">
+    <div class="spinner"></div>
+    <h3>Loading transactions…</h3>
+  </div>
+  <div class="state hidden" id="emptyState">
+    <div class="circle">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg>
+    </div>
+    <h3>No transactions found</h3>
+    <p>Your sent and received payments will appear here.</p>
+    <button class="retry" id="retryBtn">Refresh</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  function $(id){return document.getElementById(id);}
+  function lsGet(k,d){try{var v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}}
+  function lsGetJSON(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+  var RIEL_PATH="M78 259V327H292V259ZM152 361V394Q121 433 106.0 451.0Q91 469 87.0 477.0Q83 485 83 491Q83 497 88.0 505.5Q93 514 106.5 532.5Q120 551 147 586H268V519H147V518L244 410V361ZM244 376V69Q244 32 226.0 16.0Q208 0 175 0H157Q130 0 103.0 8.5Q76 17 58.0 40.5Q40 64 40 108Q40 148 58.0 171.5Q76 195 101.5 206.0Q127 217 152 219V376ZM152 67V151Q138 151 122.5 142.0Q107 133 107 109Q107 85 121.5 76.0Q136 67 152 67Z";
+  function rielSvg(h){return '<svg viewBox="40 -586 252 586" preserveAspectRatio="xMidYMid meet" style="height:'+(h||'1em')+';width:auto;vertical-align:-0.08em;display:inline-block;flex:none;" fill="currentColor"><g transform="scale(1,-1)"><path d="'+RIEL_PATH+'"/></g></svg>';}
+  function fmtMoney(cur,val){
+    var n=Number(val)||0;
+    if(cur==='KHR')return rielSvg('1em')+'<span style="margin-left:3px;">'+Math.floor(n).toLocaleString('en-US')+'</span>';
+    return '<span>$</span>'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function parseTime(s){
+    if(!s)return null;
+    var m=String(s).trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+    if(m)return new Date(+m[1],+m[2]-1,+m[3],+(m[4]||0),+(m[5]||0),+(m[6]||0));
+    var d=new Date(s);return isNaN(d)?null:d;
+  }
+  function dayLabel(d){
+    var today=new Date();
+    var a=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    var t=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+    var diff=Math.round((t-a)/86400000);
+    if(diff===0)return 'Today';
+    if(diff===1)return 'Yesterday';
+    return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  }
+  function timeLabel(d){return d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});}
+  function typeTitle(t,desc,ext){
+    if(desc)return desc;
+    var k=String(t||'').toLowerCase();
+    if(k.indexOf('cash')>=0)return 'Cash In';
+    if(k.indexOf('qr')>=0)return 'QR Payment';
+    if(k.indexOf('transfer')>=0)return 'Transfer';
+    if(ext)return String(ext).split(' - ')[0];
+    return t?String(t).replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();}):'Transaction';
+  }
+
+  var ALL=[], filter='all';
+
+  // 服务器交易 → 统一模型
+  function mapServer(t){
+    var dir = (t.to_account_id && !t.from_account_id)?'in':'out';
+    var cur = t.currency||'KHR';
+    var amt = cur==='USD' ? (Number(t.amount)||0)/100 : Number(t.amount)||0;
+    var d = parseTime(t.created_at) || new Date();
+    var extParts=t.external_to?String(t.external_to).split(' - '):[];
+    var isInternal=(t.type==='transfer'||t.type==='internal_transfer') && !t.external_to;
+    var descName=t.description?String(t.description).replace(/^(QR Payment to|Transfer to|Internal transfer to)/i,'').trim():'';
+    var pName = extParts[0] || descName || (isInternal?'Wing Member':'');
+    var otherAcct = dir==='in'?(t.from_account||''):(t.to_account||'');
+    var pAcct = extParts[1] || otherAcct;
+    var pBank = extParts[2] || (isInternal?'Wing Bank':'');
+    var counterparty = dir==='in' ? (t.from_account||'') : (t.to_account || extParts[0] || '');
+    var refShort = t.reference_id?('Ref ••••'+String(t.reference_id).slice(-6)):'';
+    var timeStr=d.toLocaleString('en-US',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+    return {
+      key:'srv-'+t.id,
+      dir:dir,
+      internal:isInternal,
+      title:isInternal?'Internal transfer':typeTitle(t.type,t.description,t.external_to),
+      sub:counterparty||refShort,
+      name:pName, account:pAcct, bank:pBank,
+      fromAccount:t.from_account||'', myAccount:(dir==='in'?(t.to_account||''):(t.from_account||'')), ref:t.reference_id||'',
+      amount:amt,
+      currency:cur,
+      status:t.status||'completed',
+      date:d, dateStr:timeStr,
+      detail:{
+        'Reference ID':t.reference_id||'—',
+        'Type':isInternal?'Internal transfer':(t.type||'—'),
+        'From account':t.from_account||'—',
+        'To account':t.to_account|| (t.external_to||'—'),
+        'Status':t.status||'—',
+        'Time':timeStr
+      }
+    };
+  }
+  // 本地（qr-payment 兜底）记录 → 统一模型
+  function mapLocal(t){
+    var d=parseTime((t.date||'')+' '+(t.time||''))||new Date();
+    var cur=t.currency||'KHR';
+    var timeStr=d.toLocaleString('en-US',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+    return {
+      key:'loc-'+t.id,
+      refKey:t.txId||'',
+      dir:t.type==='in'?'in':'out',
+      internal:t.kind==='internal'||t.internal===true,
+      title:t.title||'Bakong QR Pay',
+      sub:t.subtitle||t.payeeBank||'',
+      name:t.payeeName||t.subtitle||'',
+      account:t.payeeAccount||'', bank:t.payeeBank||'',
+      fromAccount:t.fromAccount||'', myAccount:t.myAccount||t.fromAccount||'', ref:t.txId||'',
+      amount:Number(t.amount)||0,
+      currency:cur,
+      status:'completed',
+      date:d, dateStr:timeStr,
+      detail:{
+        'Reference ID':t.txId||'—',
+        'Paid to':t.payeeName||t.subtitle||'—',
+        'Account':t.payeeAccount||'—',
+        'Bank':t.payeeBank||'—',
+        'From account':t.fromAccount||'—',
+        'Time':timeStr
+      }
+    };
+  }
+
+  function load(){
+    $('loadingState').classList.remove('hidden');
+    $('emptyState').classList.add('hidden');
+    var phone=lsGet('wing_phone','');
+    var urls=[];
+    if(phone) urls.push('/api/client/accounts/transactions?phone='+encodeURIComponent(phone)+'&limit=100');
+    var token=lsGet('wing_token','');
+    Promise.all(urls.map(function(u){
+      return fetch(u,token?{headers:{Authorization:'Bearer '+token}}:{}).then(function(r){return r.ok?r.json():{ok:false,transactions:[]};}).catch(function(){return {ok:false,transactions:[]};});
+    })).then(function(res){
+      var server=[];
+      res.forEach(function(j){if(j&&j.ok&&j.transactions)server=server.concat(j.transactions);});
+      var local=lsGetJSON('wing_bank_user_transactions',[])||[];
+      var items=server.map(mapServer);
+      var srvRefs={};items.forEach(function(it){if(it.detail&&it.detail['Reference ID'])srvRefs[String(it.detail['Reference ID']).toLowerCase()]=1;});
+      local.forEach(function(t){var lt=mapLocal(t); if(lt.refKey&&srvRefs[String(lt.refKey).toLowerCase()])return; items.push(lt);});
+      items.sort(function(a,b){return b.date-a.date;});
+      ALL=items;
+      render();
+    }).catch(function(){
+      ALL=(lsGetJSON('wing_bank_user_transactions',[])||[]).map(mapLocal);
+      render();
+    });
+  }
+
+  function sums(){
+    var inV=0,outV=0,inCur='KHR',outCur='KHR';
+    ALL.forEach(function(t){if(t.dir==='in'){inV+=t.amount;inCur=t.currency;}else{outV+=t.amount;outCur=t.currency;}});
+    $('sumIn').innerHTML = ALL.length?fmtMoney(inCur,inV):'—';
+    $('sumOut').innerHTML = ALL.length?fmtMoney(outCur,outV):'—';
+  }
+
+  function render(){
+    $('loadingState').classList.add('hidden');
+    var list=$('list');list.innerHTML='';
+    var items=ALL.filter(function(t){return filter==='all'||t.dir===filter;});
+    sums();
+    if(!items.length){$('emptyState').classList.remove('hidden');return;}
+    $('emptyState').classList.add('hidden');
+    var groups={},order=[];
+    items.forEach(function(t){
+      var key=t.date.toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'});
+      if(!groups[key]){groups[key]={label:dayLabel(t.date),rows:[]};order.push(key);}
+      groups[key].rows.push(t);
+    });
+    order.forEach(function(key){
+      var g=groups[key];
+      var dg=document.createElement('div');dg.className='day-group';
+      dg.innerHTML='<div class="day-label">'+esc(g.label)+'</div>';
+      g.rows.forEach(function(t){
+        var card=document.createElement('div');card.className='tx';
+        var sign=t.dir==='in'?'+':'−';
+        card.innerHTML=
+          '<button class="tx-main">'+
+            '<span class="tx-ico '+t.dir+'">'+(t.dir==='in'?
+              '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>':
+              '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>')+'</span>'+
+            '<span class="tx-mid"><span class="tx-title">'+esc(t.title)+'</span><span class="tx-sub">'+esc(t.sub||timeLabel(t.date))+'</span></span>'+
+            '<span class="tx-right"><span class="tx-amt '+t.dir+'">'+sign+fmtMoney(t.currency,t.amount)+'</span><span class="tx-st">'+timeLabel(t.date)+'</span></span>'+
+          '</button>'+
+          '<div class="tx-detail">'+Object.keys(t.detail).map(function(k){
+            var v=t.detail[k];var ok=(k==='Status'&&String(v).toLowerCase()==='completed');
+            return '<div class="dx"><span class="k">'+esc(k)+'</span><span class="v'+(ok?' badge-ok':'')+'">'+esc(v)+'</span></div>';
+          }).join('')+'</div>';
+        card.querySelector('.tx-main').addEventListener('click',function(){
+          try{sessionStorage.setItem('view_tx_detail',JSON.stringify(t));}catch(e){}
+          location.href='/app/transaction-detail.html';
+        });
+        dg.appendChild(card);
+      });
+      list.appendChild(dg);
+    });
+  }
+
+  $('filterSeg').addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    filter=b.dataset.f;
+    Array.prototype.forEach.call(this.querySelectorAll('button'),function(x){x.classList.toggle('on',x===b);});
+    render();
+  });
+  $('backBtn').addEventListener('click',function(){
+    if(history.length>1){try{history.back();return;}catch(e){}}
+    location.replace('/');
+  });
+  // 通知铃铛：未读角标 + 跳转通知中心
+  function refreshBell(){
+    var ns=lsGetJSON('wing_notifications',[])||[];
+    var unread=ns.filter(function(n){return !n.read;}).length;
+    var b=$('bellBadge');if(!b)return;
+    b.textContent=unread>9?'9+':unread;
+    b.classList.toggle('hidden',unread===0);
+  }
+  $('notifBtn').addEventListener('click',function(){location.href='/app/notifications.html';});
+  refreshBell();setInterval(refreshBell,2500);
+  window.addEventListener('storage',refreshBell);
+  $('retryBtn').addEventListener('click',load);
+  load();
+})();
+</script>
+</body>
+</html>

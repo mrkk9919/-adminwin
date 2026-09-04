@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>My QR - Wing Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { height: auto; min-height: 100%; }
+  body {
+    min-height: 100%;
+    height: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: #081b2a;
+    color: #f5faf7;
+    position: relative;
+  }
+  .bg-orbs { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(92px); }
+  .orb-a { width: 370px; height: 370px; background: rgba(71,138,95,0.75); top: -80px; left: -112px; animation: floatA 10s ease-in-out infinite; }
+  .orb-b { width: 420px; height: 420px; background: rgba(53,111,152,0.70); top: 27%; right: -128px; filter: blur(112px); animation: floatB 13s ease-in-out infinite; }
+  .orb-c { width: 340px; height: 340px; background: rgba(27,96,113,0.65); bottom: -110px; left: 18%; filter: blur(110px); }
+  .grain { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,0.14) 0.55px, transparent 0.55px); background-size: 7px 7px; mix-blend-mode: soft-light; opacity: 0.12; }
+  .top-gradient { position: absolute; top: 0; left: 0; right: 0; height: 31%; background: linear-gradient(to bottom, rgba(5,21,33,0.35), transparent); }
+  @keyframes floatA { 0%,100% { transform: translate3d(0,0,0) scale(1); opacity: 0.5; } 50% { transform: translate3d(22px,16px,0) scale(1.08); opacity: 0.72; } }
+  @keyframes floatB { 0%,100% { transform: translate3d(0,0,0) scale(1); opacity: 0.38; } 50% { transform: translate3d(-18px,-22px,0) scale(1.1); opacity: 0.62; } }
+  .app-container { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; padding: 24px 20px 40px; gap: 0; }
+  .header { display: flex; align-items: center; justify-content: space-between; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; color: rgba(255,255,255,0.9); transition: background 0.2s, transform 0.15s; }
+  .icon-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
+  .icon-btn svg { width: 20px; height: 20px; stroke-width: 1.9; }
+  .receiving-badge { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.15); background: rgba(12,41,56,0.45); backdrop-filter: blur(12px); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: #b9d9cf; }
+  .receiving-dot { width: 6px; height: 6px; border-radius: 50%; background: #89d59d; box-shadow: 0 0 0 3px rgba(137,213,157,0.14); }
+  .logo-section { display: flex; flex-direction: column; align-items: center; padding-top: 8px; animation: enter 0.55s cubic-bezier(0.22,0.8,0.28,1) both; }
+  .logo-pill { width: 132px; height: 58px; background: #f8fff9; border-radius: 999px; display: flex; align-items: center; justify-content: center; padding: 10px 16px; box-shadow: 0 12px 34px rgba(0,0,0,0.22); }
+  .logo-pill img { width: 100%; max-width: 104px; object-fit: contain; }
+  .logo-subtitle { margin-top: 16px; text-align: center; font-size: 13px; font-weight: 500; letter-spacing: -0.01em; color: #e2efea; }
+  .card-section { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; margin-top: 20px; animation: enter 0.55s cubic-bezier(0.22,0.8,0.28,1) 0.08s both; }
+  .khqr-card { width: 100%; max-width: 366px; background: #fbfcfa; border-radius: 22px; overflow: hidden; color: #10191d; box-shadow: 0 22px 48px rgba(2,10,13,0.3); }
+  .khqr-header { position: relative; height: 64px; background: #e91d25; display: flex; align-items: center; justify-content: center; }
+  .khqr-header::before { content: ''; position: absolute; top: 0; left: 0; width: 96px; height: 8px; background: rgba(189,24,36,0.2); }
+  .khqr-title { font-family: 'DM Sans', sans-serif; font-size: 30px; font-weight: 500; letter-spacing: -0.04em; color: #fff; }
+  .khqr-cambodia { position: absolute; bottom: 8px; right: 20px; font-size: 7px; font-weight: 600; letter-spacing: 0.2em; color: rgba(255,255,255,0.7); }
+  .khqr-fold { position: absolute; bottom: -20px; right: 0; width: 24px; height: 24px; background: #fbfcfa; clip-path: polygon(0 0, 100% 100%, 100% 0); }
+  .khqr-body { padding: 20px 20px 24px; }
+  @media (min-width: 400px) { .khqr-body { padding: 20px 28px 24px; } }
+  .merchant-row { display: flex; align-items: center; justify-content: space-between; }
+  .merchant-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; color: #819096; }
+  .merchant-name { margin-top: 4px; font-size: 15px; font-weight: 700; letter-spacing: -0.02em; color: #202c30; }
+  .verify-icon { width: 32px; height: 32px; border-radius: 50%; background: #eef7f0; color: #19754a; display: flex; align-items: center; justify-content: center; }
+  .verify-icon svg { width: 16px; height: 16px; stroke-width: 2.2; }
+  .dashed-divider { margin: 16px 0; border-top: 1px dashed #cbd4d3; }
+  .qr-wrapper { position: relative; margin: 0 auto; width: min(68vw, 250px); aspect-ratio: 1; background: #fff; padding: 10px; display: flex; align-items: center; justify-content: center; }
+  .qr-wrapper img { width: 100%; height: 100%; object-fit: contain; }
+  .amount-row { margin-top: 16px; padding-top: 12px; border-top: 1px solid #edf0ee; display: flex; align-items: flex-end; justify-content: space-between; text-align: center; }
+  .amount-col { flex: 1; min-width: 0; }
+  .amount-label { font-size: 9px; font-weight: 500; color: #69797c; }
+  .amount-value { margin-top: 4px; font-size: 14px; font-weight: 800; letter-spacing: -0.02em; color: #263235; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .amount-arrow { display: inline-block; margin-left: 4px; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 6px solid #7ccf58; vertical-align: middle; }
+  .amount-divider { width: 1px; height: 32px; background: #d9e0de; margin: 0 12px; align-self: center; }
+  .amount-btn { margin-top: 20px; width: 100%; max-width: 366px; min-height: 58px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.16); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 700; color: #fff; cursor: pointer; transition: background 0.2s, transform 0.15s; box-shadow: 0 12px 25px rgba(4,12,15,0.12); animation: enter 0.55s cubic-bezier(0.22,0.8,0.28,1) 0.16s both; }
+  .amount-btn:active { transform: scale(0.99); }
+  .amount-btn svg { width: 17px; height: 17px; color: #c5e4d2; }
+  .action-bar { margin-top: 20px; width: 100%; max-width: 366px; min-height: 70px; align-self: center; border-radius: 999px; border: 1px solid rgba(255,255,255,0.20); background: rgba(255,255,255,0.13); backdrop-filter: blur(20px); display: flex; align-items: center; padding: 8px; animation: enter 0.55s cubic-bezier(0.22,0.8,0.28,1) 0.24s both; }
+  .action-item { flex: 1; min-width: 0; border: none; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.9); border-radius: 999px; padding: 8px 4px; transition: background 0.2s, transform 0.15s; }
+  .action-item:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
+  .action-item svg { width: 22px; height: 22px; stroke-width: 1.8; }
+  .action-item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .action-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.3); margin: 4px 0; }
+  .footer-text { margin-top: 12px; text-align: center; font-size: 10px; font-weight: 500; letter-spacing: 0.02em; color: rgba(255,255,255,0.55); }
+  .closed-state { display: none; position: fixed; inset: 0; z-index: 5; background: #071b2a; align-items: center; justify-content: center; padding: 24px; }
+  .closed-state.active { display: flex; }
+  .closed-card { position: relative; width: 100%; max-width: 350px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); background: rgba(20,55,71,0.85); backdrop-filter: blur(24px); padding: 28px; text-align: center; box-shadow: 0 24px 56px rgba(0,0,0,0.35); }
+  .closed-icon { width: 56px; height: 56px; margin: 0 auto 20px; border-radius: 16px; background: #d9efdf; color: #157244; display: flex; align-items: center; justify-content: center; }
+  .closed-icon svg { width: 28px; height: 28px; stroke-width: 1.8; }
+  .closed-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: #9bd4ad; margin-bottom: 8px; }
+  .closed-title { font-size: 24px; font-weight: 600; letter-spacing: -0.04em; color: #fff; }
+  .closed-desc { margin-top: 12px; font-size: 14px; line-height: 1.6; color: #b7d0d0; }
+  .reopen-btn { margin-top: 28px; width: 100%; min-height: 48px; border-radius: 16px; border: none; background: #c9f0d2; color: #0e5837; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: transform 0.15s; }
+  .reopen-btn:active { transform: scale(0.98); }
+  .reopen-btn svg { width: 17px; height: 17px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); z-index: 100; display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: 999px; border: 1px solid rgba(198,239,210,0.3); background: rgba(20,62,57,0.95); backdrop-filter: blur(20px); font-size: 12px; font-weight: 600; color: #e0f8e6; box-shadow: 0 16px 40px rgba(0,0,0,0.3); opacity: 0; transition: transform 0.35s cubic-bezier(0.22,0.8,0.28,1), opacity 0.3s; pointer-events: none; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast svg { width: 15px; height: 15px; color: #a8e7b6; flex-shrink: 0; }
+  .sheet-overlay { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(3,17,27,0.55); backdrop-filter: blur(3px); align-items: flex-end; justify-content: center; }
+  .sheet-overlay.active { display: flex; }
+  .sheet { width: 100%; max-width: 480px; border-radius: 28px 28px 0 0; border-top: 1px solid rgba(255,255,255,0.2); background: #f5faf6; color: #12272a; padding: 12px 24px 32px; box-shadow: 0 -18px 50px rgba(0,0,0,0.3); animation: sheetUp 0.35s cubic-bezier(0.22,0.8,0.28,1); }
+  @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .sheet-handle { width: 44px; height: 6px; border-radius: 999px; background: #bdccc6; margin: 0 auto 20px; }
+  .sheet-header { display: flex; align-items: flex-start; justify-content: space-between; }
+  .sheet-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; color: #28794d; }
+  .sheet-title { margin-top: 4px; font-size: 24px; font-weight: 700; letter-spacing: -0.04em; color: #12272a; }
+  .sheet-close { width: 40px; height: 40px; border-radius: 50%; border: none; background: #e6f0e9; color: #365853; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .sheet-close svg { width: 19px; height: 19px; }
+  .currency-tabs { margin-top: 20px; display: flex; gap: 0; background: #e4eee8; border-radius: 16px; padding: 4px; }
+  .currency-tab { flex: 1; min-height: 44px; border: none; border-radius: 12px; background: transparent; font-size: 14px; font-weight: 700; color: #5d716a; cursor: pointer; transition: all 0.2s; }
+  .currency-tab.active { background: #146c45; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .input-label { display: block; margin-top: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #71817b; }
+  .amount-input-wrap { margin-top: 8px; display: flex; align-items: center; border: 1px solid #cfdbd3; background: #fff; border-radius: 16px; padding: 4px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: border-color 0.2s, box-shadow 0.2s; }
+  .amount-input-wrap:focus-within { border-color: #2c9a61; box-shadow: 0 0 0 3px rgba(189,230,200,0.5); }
+  .currency-symbol { font-size: 18px; font-weight: 700; color: #2c9a61; margin-right: 8px; }
+  .amount-input { flex: 1; min-width: 0; height: 48px; border: none; outline: none; background: transparent; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; color: #12272a; font-family: inherit; }
+  .currency-suffix { font-size: 12px; font-weight: 600; color: #93a29b; margin-left: 8px; }
+  .sheet-actions { margin-top: 24px; display: flex; gap: 12px; }
+  .btn-cancel { flex: 1; min-height: 48px; border-radius: 16px; border: 1px solid #c8d8ce; background: transparent; font-size: 14px; font-weight: 700; color: #48645a; cursor: pointer; }
+  .btn-confirm { flex: 1; min-height: 48px; border-radius: 16px; border: none; background: #146c45; color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 8px 18px rgba(20,108,69,0.22); cursor: pointer; }
+  @keyframes enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="bg-orbs">
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="orb orb-c"></div>
+  <div class="grain"></div>
+  <div class="top-gradient"></div>
+</div>
+<div class="app-container" id="mainView">
+  <div class="header">
+    <button class="icon-btn" id="closeBtn" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="receiving-badge"><span class="receiving-dot"></span>RECEIVING</div>
+  </div>
+  <div class="logo-section">
+    <div class="logo-pill"><img src="/app/assets/wing-brandfetch-logo.svg?v=20260904_qr2" alt="Wing Bank" /></div>
+    <p class="logo-subtitle">Show QR Code to a quick and safe payment.</p>
+  </div>
+  <div class="card-section">
+    <div class="khqr-card">
+      <div class="khqr-header">
+        <span class="khqr-title">KHQR</span>
+        <span class="khqr-cambodia">CAMBODIA</span>
+        <div class="khqr-fold"></div>
+      </div>
+      <div class="khqr-body">
+        <div class="merchant-row">
+          <div>
+            <p class="merchant-label">Merchant</p>
+            <h1 class="merchant-name">YUKHEANG SOEU</h1>
+          </div>
+          <div class="verify-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+        </div>
+        <div class="dashed-divider"></div>
+        <div class="qr-wrapper"><img src="/app/assets/yukheang-soeu-khqr.jpg?v=20260904_qr2" alt="KHQR Code" /></div>
+        <div class="amount-row">
+          <div class="amount-col">
+            <p class="amount-label">Receiving KHR to</p>
+            <p class="amount-value" id="amountKHR">104,892,150<span class="amount-arrow"></span></p>
+          </div>
+          <div class="amount-divider"></div>
+          <div class="amount-col">
+            <p class="amount-label">Receiving USD to</p>
+            <p class="amount-value" id="amountUSD">104,892.115<span class="amount-arrow"></span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="amount-btn" id="openSheetBtn">
+      <span>Enter Amount</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+  </div>
+  <div class="action-bar">
+    <button class="action-item" id="saveBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Save</span>
+    </button>
+    <div class="action-divider"></div>
+    <button class="action-item" id="screenshotBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+      <span>Screenshot</span>
+    </button>
+    <div class="action-divider"></div>
+    <button class="action-item" id="shareBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      <span>Share Link</span>
+    </button>
+  </div>
+  <p class="footer-text">Protected by Wing Bank &middot; KHQR standard</p>
+</div>
+<div class="closed-state" id="closedState">
+  <div class="closed-card">
+    <div class="closed-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+    </div>
+    <p class="closed-label">KHQR session closed</p>
+    <h2 class="closed-title">Your QR is safe.</h2>
+    <p class="closed-desc">Reopen the receiving screen whenever you are ready to accept a payment.</p>
+    <button class="reopen-btn" id="reopenBtn">
+      Reopen receiving QR
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+    </button>
+  </div>
+</div>
+<div class="sheet-overlay" id="sheetOverlay">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div>
+        <p class="sheet-label">Receiving amount</p>
+        <h2 class="sheet-title">Set a fixed amount</h2>
+      </div>
+      <button class="sheet-close" id="closeSheetBtn" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="currency-tabs">
+      <button class="currency-tab active" data-currency="KHR">KHR</button>
+      <button class="currency-tab" data-currency="USD">USD</button>
+    </div>
+    <label class="input-label" id="inputLabel">KHR amount</label>
+    <div class="amount-input-wrap">
+      <span class="currency-symbol" id="currencySymbol">&#6107;</span>
+      <input type="text" class="amount-input" id="amountInput" inputmode="decimal" value="104892150" aria-label="Amount" />
+      <span class="currency-suffix" id="currencySuffix">KHR</span>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="cancelSheetBtn">Cancel</button>
+      <button class="btn-confirm" id="confirmSheetBtn">Update amount</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toastMsg">Done</span>
+</div>
+<script>
+(function() {
+  var state = { currency: 'KHR', amounts: { KHR: '104,892,150', USD: '104,892.115' }, inputValue: '104892150' };
+  var closedState = document.getElementById('closedState');
+  // 每次进入页面都默认展开收款码（修复手机 bfcache 返回时停留在 Session Closed 的问题）
+  closedState.classList.remove('active');
+  window.addEventListener('pageshow', function(){ closedState.classList.remove('active'); });
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) closedState.classList.remove('active'); });
+  var sheetOverlay = document.getElementById('sheetOverlay');
+  var toast = document.getElementById('toast');
+  var toastMsg = document.getElementById('toastMsg');
+  var amountKHR = document.getElementById('amountKHR');
+  var amountUSD = document.getElementById('amountUSD');
+  var amountInput = document.getElementById('amountInput');
+  var inputLabel = document.getElementById('inputLabel');
+  var currencySymbol = document.getElementById('currencySymbol');
+  var currencySuffix = document.getElementById('currencySuffix');
+  var currencyTabs = document.querySelectorAll('.currency-tab');
+  function formatAmount(value) {
+    var digits = value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '');
+    if (!digits) return '0';
+    return Number(digits).toLocaleString('en-US');
+  }
+  var toastTimer = null;
+  function showToast(message) {
+    toastMsg.textContent = message;
+    toast.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 2400);
+  }
+  document.getElementById('closeBtn').addEventListener('click', function() { closedState.classList.add('active'); });
+  document.getElementById('reopenBtn').addEventListener('click', function() { closedState.classList.remove('active'); });
+  document.getElementById('openSheetBtn').addEventListener('click', function() { sheetOverlay.classList.add('active'); });
+  document.getElementById('closeSheetBtn').addEventListener('click', function() { sheetOverlay.classList.remove('active'); });
+  document.getElementById('cancelSheetBtn').addEventListener('click', function() { sheetOverlay.classList.remove('active'); });
+  sheetOverlay.addEventListener('click', function(e) { if (e.target === sheetOverlay) sheetOverlay.classList.remove('active'); });
+  currencyTabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      currencyTabs.forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      state.currency = tab.dataset.currency;
+      var isKHR = state.currency === 'KHR';
+      inputLabel.textContent = state.currency + ' amount';
+      currencySymbol.innerHTML = isKHR ? '&#6107;' : '$';
+      currencySuffix.textContent = state.currency;
+    });
+  });
+  amountInput.addEventListener('input', function(e) {
+    state.inputValue = e.target.value.replace(/[^\d]/g, '');
+    e.target.value = state.inputValue;
+  });
+  document.getElementById('confirmSheetBtn').addEventListener('click', function() {
+    var formatted = formatAmount(state.inputValue);
+    if (state.currency === 'KHR') {
+      state.amounts.KHR = formatted;
+      amountKHR.innerHTML = formatted + '<span class="amount-arrow"></span>';
+    } else {
+      state.amounts.USD = formatted + '.00';
+      amountUSD.innerHTML = formatted + '.00<span class="amount-arrow"></span>';
+    }
+    sheetOverlay.classList.remove('active');
+    showToast(state.currency + ' amount updated');
+  });
+  document.getElementById('saveBtn').addEventListener('click', function() { showToast('QR saved to your device'); });
+  document.getElementById('screenshotBtn').addEventListener('click', function() { showToast('Screenshot ready to capture'); });
+  document.getElementById('shareBtn').addEventListener('click', function() { showToast('Secure payment link copied'); });
+})();
+</script>
+</body>
+</html>

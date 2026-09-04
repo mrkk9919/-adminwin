@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}创建管理账号 — Wing Bank Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>创建管理账号</h1>
+        <p class="subtitle">创建新的 BAKONG QR 管理账号（主管）</p>
+    </div>
+    <a href="/bakong-qr/users" class="btn">← 返回用户列表</a>
+</div>
+
+<div class="card" style="max-width:600px;">
+    <form method="post" action="/bakong-qr/users/create-admin">
+        <div class="form-group">
+            <label>手机号 *</label>
+            <input type="text" name="phone" required placeholder="855...">
+        </div>
+        <div class="form-group">
+            <label>密码 *</label>
+            <input type="text" name="password" required placeholder="登录密码">
+        </div>
+        <div class="form-group">
+            <label>姓 (First Name)</label>
+            <input type="text" name="first_name" placeholder="名">
+        </div>
+        <div class="form-group">
+            <label>名 (Last Name)</label>
+            <input type="text" name="last_name" placeholder="姓">
+        </div>
+        <div class="form-group">
+            <label>上级主管 (Parent)</label>
+            <select name="parent_id">
+                <option value="MASTER001">主二维码 (MASTER)</option>
+                {% for a in admins %}
+                <option value="{{ a.telegram_id }}">{{ a.first_name or '' }} {{ a.last_name or '' }} ({{ a.referrer_code or a.telegram_id }})</option>
+                {% endfor %}
+            </select>
+            <small class="text-muted">选择该管理账号的上级，默认为主二维码</small>
+        </div>
+        <button type="submit" class="btn btn-primary">创建管理账号</button>
+    </form>
+</div>
+
+<div class="card" style="max-width:600px;margin-top:20px;">
+    <h3>层级结构说明</h3>
+    <pre style="background:#f5f5f5;padding:15px;border-radius:8px;">
+主二维码 (MASTER)
+  ├── 管理账号 A (推荐码: A000018)
+  │     ├── 新用户 A1 (扫码注册自动绑定)
+  │     ├── 新用户 A2
+  │     └── 新用户 A3
+  ├── 管理账号 B
+  │     ├── 新用户 B1
+  │     └── 新用户 B2
+  └── 管理账号 C
+        └── 新用户 C1
+    </pre>
+    <p class="text-muted">新用户通过扫描管理账号的二维码注册时，会自动绑定到该管理账号下。</p>
+</div>
+{% endblock %}

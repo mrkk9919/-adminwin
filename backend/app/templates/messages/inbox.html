@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% block title %}Messages — Wing Bank Admin{% endblock %}
+
+{% block content %}
+<header>
+    <div class="flex-between">
+        <div>
+            <h1>Messages</h1>
+            <p class="subtitle">
+                Customer conversations from the Telegram bot
+                {% if total_unread %} · <span class="badge badge-pending">{{ total_unread }} unread</span>{% endif %}
+            </p>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <span id="botStatus" class="text-muted" style="font-size:11px;">Checking bot...</span>
+            <button class="btn btn-outline btn-sm" onclick="checkBot()" id="btnCheck">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 4v6h-6M1 20v-6h6" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                </svg>
+                Check Bot
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- Bot Connection Panel -->
+<div class="panel" id="botPanel"
+    style="display:none; border-left:4px solid var(--wing-green); margin-bottom:20px; padding:16px 24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <strong id="botName" style="font-size:13px;">—</strong>
+            <span class="text-muted" id="botUsername" style="font-size:12px;"></span>
+        </div>
+        <span class="badge badge-success" id="botBadge">Connected</span>
+    </div>
+    <div style="display:flex; gap:24px; margin-top:10px;" class="text-sm text-muted">
+        <span>Bot ID: <code id="botId">—</code></span>
+        <span>Pending: <strong id="botPending">0</strong> updates</span>
+        <span>Mode: <span id="botMode">—</span></span>
+        <span id="botError" style="color:var(--wing-red); display:none;"></span>
+    </div>
+</div>
+
+<!-- Bot Error Panel -->
+<div class="panel" id="botErrorPanel"
+    style="display:none; border-left:4px solid var(--wing-red); margin-bottom:20px; padding:16px 24px;">
+    <div style="display:flex; align-items:center; gap:8px;">
+        <span class="badge badge-failed">Disconnected</span>
+        <span id="botErrorMsg" style="color:var(--wing-red);"></span>
+    </div>
+</div>
+
+<!-- Bot Filter Bar -->
+<div class="panel" style="margin-bottom:20px; padding:12px 24px;">
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <span class="text-sm text-muted" style="margin-right:8px;">Filter by bot:</span>
+        {% for b in bot_list %}
+        <a href="/messages{% if b.name %}?bot={{ b.name }}{% endif %}"
+           class="badge {% if current_bot == b.name %}badge-success{% else %}badge{% endif %}"
+           style="text-decoration:none; cursor:pointer; padding:6px 12px; font-size:12px;">
+            {{ b.label }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Search & Add Customer -->
+<div class="panel" style="margin-bottom:20px; padding:16px 24px;">
+    <div style="display:flex; gap:24px; flex-wrap:wrap;">
+        <!-- Search -->
+        <div style="flex:1; min-width:240px;">
+            <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">
+                Search Customer
+            </label>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="searchInput" placeholder="@username, phone or Telegram ID"
+                    style="flex:1; padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px;"
+                    onkeyup="if(event.key==='Enter')searchCustomer()">
+                <button class="btn btn-outline btn-sm" onclick="searchCustomer()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="vertical-align:-2px;">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="M21 21l-4.35-4.35" />
+                    </svg>
+                    Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Add Customer -->
+        <div style="flex:1.5; min-width:360px; border-left:1px solid #eee; padding-left:24px;">
+            <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">
+                Add Customer
+            </label>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+                <div style="flex:1; min-width:100px;">
+                    <input type="text" id="addUsername" placeholder="@username"
+                        style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px;">
+                </div>
+                <div style="flex:1; min-width:100px;">
+                    <input type="text" id="addPhone" placeholder="Phone number"
+                        style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px;">
+                </div>
+                <div style="flex:1; min-width:100px;">
+                    <input type="number" id="addTgId" placeholder="Telegram ID"
+                        style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px;">
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="addCustomer()" style="white-space:nowrap;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="vertical-align:-2px;margin-right:2px;">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="8.5" cy="7" r="4" />
+                        <line x1="20" y1="8" x2="20" y2="14" />
+                        <line x1="23" y1="11" x2="17" y2="11" />
+                    </svg>
+                    Add
+                </button>
+            </div>
+            <div style="font-size:11px; color:#999; margin-top:4px;">Enter username and/or phone. Telegram ID required
+                to send messages.</div>
+        </div>
+    </div>
+
+    <!-- Search Results -->
+    <div id="searchResults" style="display:none; margin-top:12px; border-top:1px solid #eee; padding-top:12px;">
+        <div id="searchResultsList"></div>
+    </div>
+
+    <!-- Add Result -->
+    <div id="addResult" style="display:none; margin-top:12px; border-top:1px solid #eee; padding-top:12px;">
+        <span id="addResultMsg"></span>
+    </div>
+</div>
+
+{% if conversations %}
+<div class="panel" style="padding: 0;">
+    {% for c in conversations %}
+    <a class="inbox-item" href="/messages/{{ c.telegram_id }}">
+        <div class="avatar">{{ (c.display_name or c.username or '?')[0] | upper }}</div>
+        <div class="info">
+            <div class="name">
+                {{ c.display_name | trim or c.username or c.telegram_id }}
+                {% if c.username %}<span class="text-muted text-sm">@{{ c.username }}</span>{% endif %}
+                {% if c.role == 'vip' %}<span class="badge badge-vip">VIP</span>{% endif %}
+                {% if c.role == 'banned' %}<span class="badge badge-banned">BANNED</span>{% endif %}
+                {% if not c.is_active %}<span class="badge badge-bad">INACTIVE</span>{% endif %}
+                {% if c.telegram_id > 0 %}
+                <span class="badge badge-success" style="font-size:9px;padding:1px 5px;">MSG</span>
+                {% else %}
+                <span class="badge badge-bad" style="font-size:9px;padding:1px 5px;">NO ID</span>
+                {% endif %}
+            </div>
+            <div class="preview">
+                {% if c.last_message %}
+                {{ c.last_message }}
+                {% elif c.phone %}
+                <span class="text-muted">📱 {{ c.phone }}</span> — Click to send message
+                {% else %}
+                <span class="text-muted">No messages yet</span> — Click to send message
+                {% endif %}
+            </div>
+        </div>
+        <div class="time">{{ c.last_at or '' }}</div>
+        {% if c.unread %}
+        <div class="unread-badge">{{ c.unread }}</div>
+        {% endif %}
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="panel">
+    <p class="empty">No customers yet. Use the form above to add a customer.</p>
+</div>
+{% endif %}
+
+<script>
+    let searchTimer;
+    async function searchCustomer() {
+        const q = document.getElementById('searchInput').value.trim();
+        const panel = document.getElementById('searchResults');
+        const list = document.getElementById('searchResultsList');
+        if (q.length < 2) { panel.style.display = 'none'; return; }
+
+        try {
+            const resp = await fetch('/messages/api/search-customer?q=' + encodeURIComponent(q));
+            const data = await resp.json();
+            if (!data.ok || !data.results.length) {
+                panel.style.display = '';
+                list.innerHTML = '<p class="text-sm text-muted">No customers found for "' + q + '"</p>';
+                return;
+            }
+            panel.style.display = '';
+            let html = '';
+            data.results.forEach(function (r) {
+                const name = (r.display_name || '').trim() || r.username || r.telegram_id;
+                const badge = r.role === 'vip' ? ' <span class="badge badge-vip">VIP</span>' :
+                    r.role === 'banned' ? ' <span class="badge badge-banned">BANNED</span>' : '';
+                html += '<a class="inbox-item" href="/messages/' + r.telegram_id + '">' +
+                    '<div class="avatar">' + (name[0] || '?').toUpperCase() + '</div>' +
+                    '<div class="info"><div class="name">' + name + badge +
+                    (r.username ? ' <span class="text-muted text-sm">@' + r.username + '</span>' : '') +
+                    '</div><div class="preview">' + (r.phone || 'No phone') + ' · ID: ' + r.telegram_id + '</div></div></a>';
+            });
+            list.innerHTML = html;
+        } catch (err) {
+            panel.style.display = '';
+            list.innerHTML = '<p class="text-sm" style="color:var(--wing-red);">Search error: ' + err.message + '</p>';
+        }
+    }
+
+    async function addCustomer() {
+        const tgId = document.getElementById('addTgId').value.trim();
+        const tgUsername = document.getElementById('addUsername').value.trim();
+        const phone = document.getElementById('addPhone').value.trim();
+        const panel = document.getElementById('addResult');
+        const msg = document.getElementById('addResultMsg');
+
+        if (!tgId && !tgUsername && !phone) {
+            msg.innerHTML = '<span class="badge badge-failed">Error</span> Please enter at least one field.';
+            panel.style.display = '';
+            return;
+        }
+
+        msg.innerHTML = '<span class="text-muted">Adding customer...</span>';
+        panel.style.display = '';
+
+        try {
+            const form = new FormData();
+            if (tgId) form.append('telegram_id', tgId);
+            if (tgUsername) form.append('tg_username', tgUsername);
+            if (phone) form.append('phone', phone);
+
+            const resp = await fetch('/messages/api/add-customer', { method: 'POST', body: form });
+            const data = await resp.json();
+            if (data.ok) {
+                if (data.existing) {
+                    msg.innerHTML = '<span class="badge badge-success">Already exists</span> ' +
+                        '<a href="/messages/' + data.telegram_id + '">Open conversation &rarr;</a>';
+                } else {
+                    const name = ((data.first_name || '') + ' ' + (data.last_name || '')).trim();
+                    let info = '<span class="badge badge-success">Added</span> ';
+                    if (name) info += '<strong>' + name + '</strong> ';
+                    if (data.username) info += '<span class="text-muted">@' + data.username + '</span> ';
+                    if (data.phone) info += '<span class="text-muted">' + data.phone + '</span> ';
+                    info += '<br><span style="font-size:11px;" class="text-muted">ID: ' + data.telegram_id + '</span> ';
+                    if (data.can_message) {
+                        info += '&middot; <a href="/messages/' + data.telegram_id + '">Send message &rarr;</a>';
+                    } else {
+                        info += '&middot; <span style="color:var(--wing-red);font-size:11px;">No Telegram ID — cannot send messages yet</span>';
+                    }
+                    msg.innerHTML = info;
+                }
+                // Clear form
+                document.getElementById('addTgId').value = '';
+                document.getElementById('addUsername').value = '';
+                document.getElementById('addPhone').value = '';
+            } else {
+                msg.innerHTML = '<span class="badge badge-failed">Error</span> ' + (data.error || data.detail || 'Unknown');
+            }
+        } catch (err) {
+            msg.innerHTML = '<span class="badge badge-failed">Error</span> ' + err.message;
+        }
+    }
+
+    async function checkBot() {
+        const btn = document.getElementById('btnCheck');
+        const status = document.getElementById('botStatus');
+        btn.disabled = true;
+        status.textContent = 'Checking...';
+
+        try {
+            const resp = await fetch('/messages/api/bot-status');
+            const data = await resp.json();
+
+            if (data.ok) {
+                document.getElementById('botPanel').style.display = '';
+                document.getElementById('botErrorPanel').style.display = 'none';
+                document.getElementById('botName').textContent = data.first_name || 'Bot';
+                document.getElementById('botUsername').textContent = data.username ? '@' + data.username : '';
+                document.getElementById('botId').textContent = data.bot_id;
+                document.getElementById('botPending').textContent = data.pending_updates;
+                document.getElementById('botMode').textContent = data.webhook_url || '—';
+                status.innerHTML = '<span class="badge badge-success" style="font-size:9px;padding:2px 6px;">Connected</span> <span style="font-size:11px;">@' + (data.username || '') + '</span>';
+            } else {
+                document.getElementById('botPanel').style.display = 'none';
+                document.getElementById('botErrorPanel').style.display = '';
+                document.getElementById('botErrorMsg').textContent = data.error || 'Unknown error';
+                status.innerHTML = '<span class="badge badge-failed" style="font-size:10px;padding:2px 8px;">Disconnected</span>';
+            }
+        } catch (err) {
+            status.textContent = 'Check failed: ' + err.message;
+        }
+        btn.disabled = false;
+    }
+    document.addEventListener('DOMContentLoaded', checkBot);
+</script>
+{% endblock %}

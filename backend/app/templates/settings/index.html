@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Settings — Wing Bank Admin{% endblock %}
+{% block content %}
+<header>
+    <h1>Settings</h1>
+    <p class="subtitle">System configuration and service status</p>
+</header>
+
+<!-- Service Status -->
+<div class="panel">
+    <h2>Platform Services</h2>
+    <table>
+        <thead><tr><th>Service</th><th>Description</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for s in services %}
+            <tr>
+                <td><strong>{{ s.name }}</strong></td>
+                <td class="text-sm">{{ s.description }}</td>
+                <td><span class="badge badge-{% if s.status == 'operational' %}success{% elif s.status == 'degraded' %}pending{% else %}failed{% endif %}">{{ s.status }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Transaction Limits -->
+<div class="panel">
+    <h2>Transaction Limits</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+        <div>
+            <h3 style="font-size:14px; margin-bottom:12px;"><span class="badge badge-success">KHR</span> Cambodian Riel</h3>
+            <table>
+                <tr><td class="text-muted">Minimum</td><td>{{ "{:,.0f}".format(limits.khr.min) }} KHR</td></tr>
+                <tr><td class="text-muted">Maximum (per tx)</td><td>{{ "{:,.0f}".format(limits.khr.max) }} KHR</td></tr>
+                <tr><td class="text-muted">Daily Maximum</td><td>{{ "{:,.0f}".format(limits.khr.daily_max) }} KHR</td></tr>
+            </table>
+        </div>
+        <div>
+            <h3 style="font-size:14px; margin-bottom:12px;"><span class="badge badge-vip">USD</span> US Dollar</h3>
+            <table>
+                <tr><td class="text-muted">Minimum</td><td>${{ "{:,.2f}".format(limits.usd.min / 100) }}</td></tr>
+                <tr><td class="text-muted">Maximum (per tx)</td><td>${{ "{:,.2f}".format(limits.usd.max / 100) }}</td></tr>
+                <tr><td class="text-muted">Daily Maximum</td><td>${{ "{:,.2f}".format(limits.usd.daily_max / 100) }}</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Database Info -->
+<div class="panel">
+    <h2>Database</h2>
+    <table>
+        <tr><td class="text-muted">Path</td><td><code>{{ db.path }}</code></td></tr>
+        <tr><td class="text-muted">Size</td><td>{{ "{:,.0f}".format(db.size_bytes / 1024) }} KB</td></tr>
+        {% for table, count in db.rows.items() %}
+        <tr><td class="text-muted">{{ table }}</td><td>{{ "{:,}".format(count) }} rows</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

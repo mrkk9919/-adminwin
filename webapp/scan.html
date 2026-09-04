@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+<title>Scan &amp; Pay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
+  body {
+    font-family:'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    color:#fff; overflow:hidden; position:relative;
+    background:
+      radial-gradient(ellipse at 18% 23%, rgba(191,201,186,.34) 0%, rgba(117,134,119,.22) 28%, transparent 60%),
+      radial-gradient(ellipse at 82% 46%, rgba(164,178,157,.38) 0%, rgba(79,96,82,.18) 34%, transparent 65%),
+      linear-gradient(156deg, #737e74 0%, #56635b 42%, #27322e 77%, #101917 100%);
+  }
+  .stage { position:relative; width:100%; max-width:480px; margin:0 auto; height:100dvh; overflow:hidden; isolation:isolate; }
+
+  /* 光晕 */
+  .orb { position:absolute; border-radius:48%; pointer-events:none; filter:blur(44px); }
+  .orb-1 { left:-64px; top:18%; width:330px; height:250px; background:rgba(208,216,201,.20); animation:drift1 11s ease-in-out infinite; }
+  .orb-2 { right:-80px; top:35%; width:300px; height:300px; border-radius:50%; background:rgba(194,204,185,.20); filter:blur(54px); animation:drift2 14s ease-in-out infinite; }
+  @keyframes drift1 { 0%,100%{transform:translate3d(-5px,0,0) scale(1);} 50%{transform:translate3d(17px,-9px,0) scale(1.04);} }
+  @keyframes drift2 { 0%,100%{transform:translate3d(8px,3px,0) scale(1.02);} 50%{transform:translate3d(-18px,12px,0) scale(.98);} }
+  /* 噪点 */
+  .noise { position:absolute; inset:0; opacity:.12; mix-blend-mode:screen; pointer-events:none;
+    background-image:radial-gradient(rgba(220,239,224,.7) .55px, transparent .7px), radial-gradient(rgba(0,0,0,.6) .5px, transparent .7px);
+    background-position:0 0, 7px 8px; background-size:11px 11px, 13px 13px; }
+  .top-fade { position:absolute; inset-inline:0; top:0; height:144px; background:linear-gradient(to bottom, rgba(11,19,18,.55), transparent); pointer-events:none; }
+  .bottom-fade { position:absolute; inset-inline:0; bottom:0; height:288px; background:linear-gradient(to top, rgba(12,21,20,.95), rgba(16,28,26,.75) 40%, transparent); pointer-events:none; z-index:1; }
+
+  /* 顶部 */
+  header { position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between;
+    padding:max(22px,env(safe-area-inset-top)) 16px 8px; }
+  .icon-btn { width:36px; height:36px; border-radius:50%; border:none; background:transparent; color:#fff;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background .2s; }
+  .icon-btn:active { background:rgba(0,0,0,.12); }
+
+  /* 扫描框 */
+  .scan-wrap { position:absolute; inset-inline:0; top:205px; z-index:10; display:flex; justify-content:center; }
+  .scan-frame { position:relative; width:236px; height:230px; border-radius:14px; outline:none; overflow:hidden; background:#0c1514; }
+  .scan-frame video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .scan-frame canvas { position:absolute; inset:0; width:100%!important; height:100%!important; }
+  .bracket { position:absolute; width:34px; height:34px; pointer-events:none; z-index:5; }
+  .bracket.tl { left:0; top:0; border-left:3px solid #fff; border-top:3px solid #fff; border-top-left-radius:10px; }
+  .bracket.tr { right:0; top:0; border-right:3px solid #fff; border-top:3px solid #fff; border-top-right-radius:10px; }
+  .bracket.bl { left:0; bottom:0; border-left:3px solid #fff; border-bottom:3px solid #fff; border-bottom-left-radius:10px; }
+  .bracket.br { right:0; bottom:0; border-right:3px solid #fff; border-bottom:3px solid #fff; border-bottom-right-radius:10px; }
+  .scan-beam { position:absolute; left:12px; right:12px; top:10px; height:2px; z-index:6; pointer-events:none;
+    background:linear-gradient(to right, transparent, #5ee441, transparent);
+    box-shadow:0 0 14px 3px rgba(83,220,57,.72); animation:beam 2.6s cubic-bezier(.4,0,.2,1) infinite; }
+  @keyframes beam { 0%{transform:translateY(0);opacity:.3;} 8%{opacity:.95;} 88%{transform:translateY(190px);opacity:.9;} 100%{transform:translateY(190px);opacity:.25;} }
+  .scan-mask-msg { position:absolute; inset:0; z-index:7; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:8px; background:rgba(8,15,14,.55); text-align:center; padding:16px; }
+  .scan-mask-msg p { font-size:12px; line-height:1.5; color:rgba(255,255,255,.85); }
+  .cam-start { position:absolute; z-index:8; left:50%; bottom:12px; transform:translateX(-50%); display:none; flex-direction:row; align-items:center; gap:7px; border:none; cursor:pointer; background:rgba(123,193,67,.95); color:#0c1514; font-size:11px; font-weight:700; padding:8px 13px; border-radius:999px; white-space:nowrap; max-width:92%; box-shadow:0 6px 18px rgba(0,0,0,.32); }
+  .cam-start.show { display:flex; }
+  .cam-start:active { transform:translateX(-50%) scale(.97); }
+  .cam-start svg { width:17px; height:17px; }
+
+  /* 接受的支付方式 */
+  .brands { position:absolute; inset-inline:20px; bottom:150px; z-index:10; }
+  .brands-title { text-align:center; margin-bottom:8px; font-size:15px; font-weight:500; letter-spacing:-.03em; }
+  .brands-row { display:flex; align-items:center; justify-content:center; gap:6px; }
+  .brand { height:28px; display:flex; align-items:center; justify-content:center; border-radius:6px;
+    border:1px solid rgba(255,255,255,.2); background:#f6f7f3; color:#26332f;
+    font-size:8px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,.14); padding-inline:4px; }
+  .brand .wp { font-weight:800; letter-spacing:-.08em; }
+  .brand .wp .g { color:#2e9c75; } .brand .wp .b { color:#65a8df; }
+  .brand.khqr span { background:#e31d2b; color:#fff; font-weight:800; border-radius:3px; padding:4px 6px; }
+  .mc-circles { position:relative; width:28px; height:16px; }
+  .mc-circles i { position:absolute; top:0; width:16px; height:16px; border-radius:50%; }
+  .mc-circles i:first-child { left:0; background:#e95b3e; } .mc-circles i:last-child { right:0; background:#f5b23d; mix-blend-mode:multiply; }
+  .brand .mini-ico { width:16px; height:16px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; margin-right:3px; }
+
+  /* 底部操作按钮 */
+  nav.actions { position:absolute; inset-inline:28px; bottom:max(25px,env(safe-area-inset-bottom)); z-index:10;
+    display:flex; align-items:flex-start; gap:8px; padding-inline:4px; }
+  .action-btn { flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:12px;
+    font-size:14px; font-weight:500; letter-spacing:-.02em; color:#f2f4f0; background:none; border:none; cursor:pointer; }
+  .action-circle { position:relative; width:58px; height:58px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:#f7f8f6; color:#12262b; box-shadow:0 5px 18px rgba(7,14,12,.18); transition:transform .2s, background .2s; border:1px solid transparent; }
+  .action-btn:active .action-circle { transform:translateY(-2px); }
+  .action-btn.active .action-circle { background:#eef9e8; color:#17342d; border-color:#effbe7; box-shadow:0 0 0 5px rgba(220,244,225,.11); }
+  .action-btn.active .dot { position:absolute; right:-2px; top:-2px; width:10px; height:10px; border-radius:50%; background:#b9e98d; border:2px solid #1d2a28; }
+
+  /* Toast */
+  .notice { position:absolute; inset-inline:20px; top:max(78px,calc(env(safe-area-inset-top) + 62px)); z-index:30;
+    display:flex; align-items:center; justify-content:center; gap:8px; text-align:center;
+    border:1px solid rgba(213,235,210,.2); background:rgba(33,60,51,.9); padding:10px 16px; border-radius:999px;
+    font-size:12px; font-weight:500; color:#ebf6e8; box-shadow:0 8px 24px rgba(0,0,0,.3); backdrop-filter:blur(12px);
+    animation:noticeIn .22s ease-out both; }
+  @keyframes noticeIn { from{opacity:0;transform:translateY(-8px);} to{opacity:1;transform:translateY(0);} }
+
+  /* 底部弹出 Sheet */
+  .sheet-mask { position:absolute; inset:0; z-index:20; display:flex; align-items:flex-end; padding:0 12px 12px;
+    background:rgba(7,16,14,.45); backdrop-filter:blur(3px); }
+  .sheet { width:100%; border-radius:27px; border:1px solid rgba(255,255,255,.1); background:#f3f7f0; color:#182724;
+    padding:20px; box-shadow:0 -18px 50px rgba(0,0,0,.35); animation:sheetUp .28s cubic-bezier(.22,.8,.28,1) both; }
+  @keyframes sheetUp { from{transform:translateY(40px);opacity:0;} to{transform:translateY(0);opacity:1;} }
+  .sheet-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .sheet-eyebrow { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.18em; color:#668077; margin-bottom:4px; }
+  .sheet-title { font-size:21px; font-weight:600; letter-spacing:-.04em; }
+  .sheet-close { width:36px; height:36px; border-radius:50%; border:none; background:#e2ebe3; color:#3a5149; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .field-label { display:block; font-size:12px; font-weight:600; color:#476058; margin-bottom:8px; }
+  .field-wrap { position:relative; }
+  .field-wrap svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#779187; }
+  .field-input { width:100%; height:48px; border-radius:16px; border:1px solid #cbd9cd; background:#eaf1ea;
+    padding:0 16px 0 40px; font-size:14px; font-weight:600; letter-spacing:.08em; color:#1b302a; outline:none; font-family:inherit; }
+  .field-input::placeholder { font-weight:500; letter-spacing:normal; color:#91a49a; }
+  .field-input:focus { border-color:#759e7f; box-shadow:0 0 0 2px #bad7bf; }
+  .confirm-btn { margin-top:16px; width:100%; height:48px; border-radius:16px; border:none; background:#233f36; color:#eff8ef;
+    font-size:14px; font-weight:600; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; transition:background .2s; }
+  .confirm-btn:active { background:#1d5544; }
+  .confirm-btn:disabled { opacity:.4; cursor:not-allowed; }
+  .upload-preview { display:flex; align-items:center; gap:12px; border-radius:16px; border:1px solid #d7e2d7; background:#e8f0e8; padding:12px; }
+  .upload-thumb { width:66px; height:66px; flex-shrink:0; border-radius:12px; background:#f7faf5; padding:10px; display:grid; grid-template-columns:repeat(5,1fr); gap:2px; box-shadow:inset 0 0 6px rgba(0,0,0,.08); }
+  .upload-thumb i { border-radius:1px; }
+  .upload-thumb i.on { background:#223c33; } .upload-thumb i.off { background:#bfd1c2; }
+  .upload-preview .up-t { font-size:14px; font-weight:600; color:#29463c; }
+  .upload-preview .up-s { margin-top:4px; font-size:12px; line-height:1.4; color:#70867c; }
+  .hidden-file { display:none; }
+  /* ===== Bakong / KHQR 识别确认页 ===== */
+  .confirm-mask { position:absolute; inset:0; z-index:40; display:none; flex-direction:column; background:#f4f6f3; color:#16241f; }
+  .confirm-mask.show { display:flex; }
+  .cm-top { background:#7bc143; padding:max(14px,env(safe-area-inset-top)) 14px 14px; display:flex; align-items:center; gap:12px; color:#fff; }
+  .cm-back { width:38px; height:38px; border-radius:50%; border:none; background:rgba(255,255,255,.22); color:#fff; display:flex; align-items:center; justify-content:center; flex:none; cursor:pointer; }
+  .cm-title { font-size:16px; font-weight:700; flex:1; text-align:center; }
+  .cm-spacer { width:38px; flex:none; }
+  .cm-body { flex:1; overflow-y:auto; padding:16px 16px 150px; }
+  .cm-badge { display:flex; align-items:center; justify-content:center; gap:8px; margin:4px 0 16px; }
+  .cm-badge .tag { background:#fff; border:1px solid #dfeadf; border-radius:6px; padding:5px 11px; font-size:11px; font-weight:800; color:#2e9c75; }
+  .cm-badge .tag.khqr { background:#e31d2b; border-color:#e31d2b; color:#fff; letter-spacing:.5px; }
+  .cm-recv { background:#fff; border:1px solid #e8eee8; border-radius:18px; padding:22px 16px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:9px; }
+  .cm-avatar { width:72px; height:72px; border-radius:50%; background:#7bc143; color:#fff; font-size:24px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 20px rgba(90,160,60,.25); }
+  .cm-name { font-size:20px; font-weight:800; color:#101a17; word-break:break-word; }
+  .cm-acct { font-size:14px; color:#5a6b63; font-weight:600; letter-spacing:.3px; }
+  .cm-bank { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#4e8a37; background:#eef9e8; border-radius:999px; padding:5px 13px; }
+  .cm-rows { background:#fff; border:1px solid #e8eee8; border-radius:18px; margin-top:14px; overflow:hidden; }
+  .cm-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 16px; border-bottom:1px solid #f2f5f2; font-size:13px; }
+  .cm-row:last-child { border-bottom:none; }
+  .cm-row .k { color:#8a978f; flex:none; }
+  .cm-row .v { color:#1b2a25; font-weight:700; text-align:right; word-break:break-all; }
+  .cm-raw { margin-top:14px; background:#fff; border:1px solid #e8eee8; border-radius:18px; overflow:hidden; }
+  .cm-raw summary { list-style:none; padding:13px 16px; font-size:12px; font-weight:700; color:#668077; cursor:pointer; display:flex; justify-content:space-between; }
+  .cm-raw summary::-webkit-details-marker { display:none; }
+  .cm-raw p { padding:0 16px 14px; font-family:ui-monospace,Menlo,monospace; font-size:10.5px; color:#445; line-height:1.6; word-break:break-all; }
+  .cm-actions { position:absolute; left:0; right:0; bottom:0; display:flex; gap:12px; padding:14px 16px max(16px,env(safe-area-inset-bottom)); background:#fff; border-top:1px solid #eef1ee; }
+  .cm-btn { flex:1; height:52px; border-radius:15px; border:none; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; }
+  .cm-rescan { background:#f0f2ef; color:#555; }
+  .cm-pay { background:#7bc143; color:#fff; box-shadow:0 8px 20px rgba(90,160,60,.28); }
+  .cm-pay:active { background:#6bb038; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="noise"></div>
+  <div class="top-fade"></div>
+  <div class="bottom-fade"></div>
+
+  <header>
+    <button class="icon-btn" id="closeBtn" aria-label="Close scanner">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </header>
+
+  <div class="scan-wrap">
+    <div class="scan-frame" id="scanFrame">
+      <video id="video" playsinline muted></video>
+      <span class="bracket tl"></span><span class="bracket tr"></span>
+      <span class="bracket bl"></span><span class="bracket br"></span>
+      <span class="scan-beam"></span>
+      <div class="scan-mask-msg" id="camMsg" style="display:none">
+        <p id="camMsgText">Starting camera…</p>
+      </div>
+      <button class="cam-start" id="camStartBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        <span id="camStartText">開啟攝像頭</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="brands">
+    <p class="brands-title">Accepted Payments</p>
+    <div class="brands-row">
+      <div class="brand" style="width:61px"><span class="wp"><span class="g">Wing</span><span class="b">pay</span></span></div>
+      <div class="brand khqr" style="width:52px"><span>KHQR</span></div>
+      <div class="brand" style="width:51px"><span class="mc-circles"><i></i><i></i></span></div>
+      <div class="brand" style="width:74px">
+        <span class="mini-ico" style="border:1px solid #9bc3bb;color:#3a9b86;font-size:10px;font-weight:bold;">↗</span>Cash Out
+      </div>
+      <div class="brand" style="width:74px">
+        <span class="mini-ico" style="background:#b5d84b;color:#fff;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </span>Link Card
+      </div>
+    </div>
+  </div>
+
+  <nav class="actions">
+    <button class="action-btn" id="merchantBtn">
+      <span class="action-circle">
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </span>Merchant ID
+    </button>
+    <button class="action-btn" id="uploadBtn">
+      <span class="action-circle">
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </span>Upload QR
+    </button>
+    <button class="action-btn" id="flashBtn">
+      <span class="action-circle" id="flashCircle">
+        <svg id="flashIconOff" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M12 16v6M2 12H8M16 12h6M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/></svg>
+        <svg id="flashIconOn" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span class="dot" style="display:none"></span>
+      </span><span id="flashLabel">Flash</span>
+    </button>
+  </nav>
+
+  <!-- 隐藏文件选择 -->
+  <input type="file" id="fileInput" class="hidden-file" accept="image/*" />
+
+  <!-- Merchant Sheet -->
+  <div class="sheet-mask" id="merchantSheet" style="display:none">
+    <section class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet-head">
+        <div>
+          <p class="sheet-eyebrow">Fallback payment</p>
+          <h2 class="sheet-title">Enter merchant ID</h2>
+        </div>
+        <button class="sheet-close" data-close="merchantSheet" aria-label="Close">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <label class="field-label" for="merchantInput">Merchant ID</label>
+      <div class="field-wrap">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6"/></svg>
+        <input class="field-input" id="merchantInput" placeholder="MRC-4817" autocomplete="off" />
+      </div>
+      <button class="confirm-btn" id="merchantConfirm" disabled>Confirm merchant
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </section>
+  </div>
+
+  <!-- Bakong / KHQR 识别确认页 -->
+  <div class="confirm-mask" id="confirmMask">
+    <div class="cm-top">
+      <button class="cm-back" id="cmRescan" aria-label="Scan again">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <span class="cm-title">QR Information</span>
+      <span class="cm-spacer"></span>
+    </div>
+    <div class="cm-body">
+      <div class="cm-badge">
+        <span class="tag">Wingpay</span>
+        <span class="tag khqr">KHQR</span>
+        <span class="tag" id="cmType">Bakong</span>
+      </div>
+      <div class="cm-recv">
+        <div class="cm-avatar" id="cmAvatar">–</div>
+        <div class="cm-name" id="cmName">—</div>
+        <div class="cm-acct" id="cmAcct"></div>
+        <div class="cm-bank" id="cmBank">—</div>
+      </div>
+      <div class="cm-rows">
+        <div class="cm-row"><span class="k">Currency</span><span class="v" id="cmCur">—</span></div>
+        <div class="cm-row" id="cmAmtRow" style="display:none"><span class="k">Amount</span><span class="v" id="cmAmt">—</span></div>
+        <div class="cm-row"><span class="k">QR Type</span><span class="v" id="cmQrType">Static</span></div>
+      </div>
+      <details class="cm-raw">
+        <summary><span>Raw QR string</span><span>▾</span></summary>
+        <p id="cmRaw"></p>
+      </details>
+    </div>
+    <div class="cm-actions">
+      <button class="cm-btn cm-rescan" id="cmRescan2">Scan Again</button>
+      <button class="cm-btn cm-pay" id="cmContinue">Continue to Pay</button>
+    </div>
+  </div>
+</div>
+
+<script src="/app/assets/qr-scanner.umd.min.js"></script>
+<script>
+(function(){
+  window.addEventListener('error', function(e){
+    var m=document.getElementById('camMsgText');
+    if(m) m.textContent='JS ERROR: '+(e.message||e.error);
+    var box=document.getElementById('camMsg'); if(box) box.style.display='flex';
+  });
+  var video = document.getElementById('video');
+  var camMsg = document.getElementById('camMsg');
+  var camMsgText = document.getElementById('camMsgText');
+  var scanner = null;
+  var flashOn = false;
+  var handled = false;
+  var pickedFile = null;
+
+  function showNotice(text){
+    var old = document.querySelector('.notice'); if (old) old.remove();
+    var n = document.createElement('div');
+    n.className='notice'; n.setAttribute('role','status');
+    n.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c1e9a1" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10"/><circle cx="12" cy="12" r="2"/></svg>'+text;
+    document.querySelector('.stage').appendChild(n);
+    setTimeout(function(){ if(n.parentNode) n.remove(); }, 2600);
+  }
+
+  function $(id){return document.getElementById(id);}
+  // ===== KHQR / Bakong EMVCo TLV 解析（与 qr-payment 一致，移植自原 App）=====
+  function tlvParse(e){
+    var A={},r=0;
+    for(;r+4<=e.length;){
+      var tag=e.slice(r,r+2),len=parseInt(e.slice(r+2,r+4),10);
+      if(isNaN(len)||len<0||r+4+len>e.length)break;
+      A[tag]=e.slice(r+4,r+4+len);r+=4+len;
+    }
+    return A;
+  }
+  function _bankChain(s){
+    if(!s)return '';
+    if(s.indexOf('acleda')>=0||s==='aclb')return 'ACLEDA Bank';
+    if(s.indexOf('wing')>=0)return 'Wing Bank';
+    if(s.indexOf('aba')>=0)return 'ABA Bank';
+    if(s.indexOf('nbc')>=0||s.indexOf('bakong')>=0)return 'BAKONG / NBC';
+    if(s.indexOf('chipmong')>=0)return 'Chipmong Bank';
+    if(s.indexOf('canadia')>=0)return 'Canadia Bank';
+    if(s.indexOf('maybank')>=0)return 'Maybank';
+    if(s.indexOf('cimb')>=0)return 'CIMB Bank';
+    if(s.indexOf('bred')>=0)return 'BRED Bank';
+    if(s.indexOf('ftb')>=0)return 'FTB Bank';
+    if(s.indexOf('prince')>=0)return 'Prince Bank';
+    if(s.indexOf('amk')>=0)return 'AMK MFI';
+    if(s.indexOf('sathapana')>=0)return 'Sathapana Bank';
+    if(s.indexOf('ppcy')>=0||s.indexOf('pp city')>=0)return 'PP City Bank';
+    if(s.indexOf('hattha')>=0)return 'Hattha Bank';
+    return '';
+  }
+  function bankName(w,m){
+    var a=(m||'').toLowerCase(),by=_bankChain(a);
+    if(by)return by;
+    if(a)return m.toUpperCase();
+    return _bankChain((w||'').toLowerCase());
+  }
+  function qrTypeOf(e){
+    var A=(e||'').toLowerCase();
+    if(A.indexOf('bakong')>=0||A.indexOf('nbc.org.kh')>=0||A.indexOf('khqr@nbc')>=0||A.indexOf('khqr@')>=0)return 'KHQR';
+    if(A.indexOf('wingmoney')>=0||A.indexOf('wing.com.kh')>=0||A.indexOf('khqr@wing')>=0)return 'Wing';
+    if((e||'').indexOf('00020101')===0)return 'KHQR';
+    return 'Unknown';
+  }
+  function parseKHQR(e){
+    if(!e)return null;
+    var A=tlvParse(e);
+    var mName=A['59']||'',amt=A['54']||'',curRaw=A['53']||'';
+    var cur=curRaw==='116'?'KHR':curRaw==='840'?'USD':'';
+    var phone='';
+    if(A['62']){var h=tlvParse(A['62']);phone=h['02']||h['01']||'';}
+    var acct='',bank='',tags=['29','28','27','26','30','31','32'];
+    for(var i=0;i<tags.length;i++){
+      var m=A[tags[i]];if(!m)continue;
+      var p=tlvParse(m),y=p['00']||'',C=p['01']||'',w=p['02']||'',b=bankName(y,w);
+      if(b||C){if(!acct)acct=C||y;if(!bank)bank=b;}
+      if(acct&&bank)break;
+    }
+    if(!acct){var fb=['29','28','27','26'];for(var j=0;j<fb.length;j++){if(A[fb[j]]){acct=A[fb[j]].slice(0,40);break;}}}
+    var f=qrTypeOf(e),hasInfo=!!(mName||acct);
+    return {
+      merchantName:mName||'Unknown', merchantAccount:acct||'—', phone:phone, amount:amt, currency:cur,
+      qrType:(f==='Unknown'&&hasInfo)?'KHQR':f,
+      bankName:bank||(f==='Wing'?'Wing Bank':f==='KHQR'?'BAKONG / NBC':''),
+      valid:hasInfo&&/^000201/.test(e)
+    };
+  }
+
+  // 扫描成功 → 先解析并弹出 Bakong/KHQR 识别确认页（恢复原 App 流程）
+  var lastRaw='', lastParsed=null;
+  function onScanSuccess(raw){
+    if (handled || !raw) return;
+    var p=parseKHQR(String(raw).trim());
+    if(!p || !p.valid){
+      showNotice('Not a valid Bakong / KHQR code');
+      handled=false; // 允许继续扫下一张
+      return;
+    }
+    handled=true;
+    try { if (navigator.vibrate) navigator.vibrate(120); } catch(e){}
+    try { sessionStorage.setItem('rawQR', raw); } catch(e){}
+    lastRaw=String(raw).trim(); lastParsed=p;
+    renderConfirm(p,lastRaw);
+  }
+  function renderConfirm(p,raw){
+    try { if(scanner) scanner.pause(); } catch(e){}
+    $('cmAvatar').textContent=(p.merchantName&&p.merchantName!=='Unknown'?p.merchantName:'B').split(' ').map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+    $('cmName').textContent=p.merchantName||'—';
+    $('cmAcct').textContent=(p.merchantAccount&&p.merchantAccount!=='—')?p.merchantAccount:'';
+    $('cmBank').textContent=p.bankName||'BAKONG / NBC';
+    $('cmType').textContent=p.qrType||'KHQR';
+    $('cmCur').textContent=p.currency||'KHR';
+    if(p.amount){ $('cmAmtRow').style.display='flex'; $('cmAmt').textContent=(p.currency==='USD'?'$ ':'KHR ')+p.amount; }
+    else { $('cmAmtRow').style.display='none'; }
+    $('cmQrType').textContent=/^000201010212/.test(raw)?'Dynamic':'Static';
+    $('cmRaw').textContent=raw;
+    $('confirmMask').classList.add('show');
+  }
+  function rescanConfirm(){
+    $('confirmMask').classList.remove('show');
+    handled=false; lastRaw=''; lastParsed=null;
+    try { if(scanner) scanner.start(); } catch(e){}
+  }
+  function continuePay(){
+    var p=lastParsed; if(!p)return;
+    var M=new URLSearchParams();
+    M.set('name',p.merchantName&&p.merchantName!=='Unknown'?p.merchantName:'UNKNOWN');
+    if(p.merchantAccount&&p.merchantAccount!=='—')M.set('account',p.merchantAccount);
+    M.set('type',p.qrType||'KHQR');
+    if(p.amount)M.set('fixedAmount',p.amount);
+    if(p.currency)M.set('fixedCurrency',p.currency);
+    if(p.bankName)M.set('bank',p.bankName);
+    if(p.phone)M.set('phone',p.phone);
+    M.set('rawQR',lastRaw);
+    location.replace('/qr-payment?'+M.toString());
+  }
+
+  // 指定 worker 路径（BarcodeDetector 优先，否则用 worker）
+  function setupEngine(){
+    if (!window.QrScanner) return Promise.resolve();
+    QrScanner._disableBarcodeDetector = false;
+    var orig = QrScanner.createQrEngine.bind(QrScanner);
+    QrScanner.createQrEngine = function(){
+      if (!QrScanner._disableBarcodeDetector && 'BarcodeDetector' in window && BarcodeDetector.getSupportedFormats){
+        return BarcodeDetector.getSupportedFormats().then(function(fmts){
+          if (fmts.indexOf('qr_code')>=0) return new BarcodeDetector({formats:['qr_code']});
+          return import('/app/assets/qr-scanner-worker.min.js').then(function(m){ return m.createWorker(); });
+        }).catch(function(){
+          return import('/app/assets/qr-scanner-worker.min.js').then(function(m){ return m.createWorker(); });
+        });
+      }
+      return import('/app/assets/qr-scanner-worker.min.js').then(function(m){ return m.createWorker(); });
+    };
+    return Promise.resolve();
+  }
+
+  var camStartBtn=document.getElementById('camStartBtn');
+  var camStartText=document.getElementById('camStartText');
+  var camWatchdog=null, camStarting=false;
+  function showCamStart(label){ camStartText.textContent=label||'開啟攝像頭'; camStartBtn.classList.add('show'); }
+  function hideCamStart(){ camStartBtn.classList.remove('show'); }
+  function videoLive(){ return video && video.readyState>=2 && video.videoWidth>0; }
+  function armWatchdog(){ if(camWatchdog)clearTimeout(camWatchdog); camWatchdog=setTimeout(function(){
+      if(!videoLive()){ camMsg.style.display='flex'; camMsgText.textContent='攝像頭未開啟，點擊下方按鈕開啟'; showCamStart('開啟攝像頭'); } },4000); }
+  video.addEventListener('loadedmetadata',function(){ if(videoLive()){ camMsg.style.display='none'; hideCamStart(); if(camWatchdog)clearTimeout(camWatchdog);} });
+  video.addEventListener('playing',function(){ if(videoLive()){ camMsg.style.display='none'; hideCamStart(); if(camWatchdog)clearTimeout(camWatchdog);} });
+  camStartBtn.addEventListener('click',function(){ hideCamStart(); startCamera(true); });
+  function camErrorText(err){
+    var n=(err&&(err.name||''))||'';
+    if(n==='NotAllowedError'||n==='SecurityError'||n==='PermissionDeniedError') return '請允許攝像頭權限後，點擊按鈕重新開啟';
+    if(n==='NotFoundError'||n==='DevicesNotFoundError') return '未檢測到攝像頭，可改用 Upload QR 上傳二維碼';
+    if(n==='NotReadableError'||n==='TrackStartError') return '攝像頭被其他應用占用，請關閉後重試';
+    return '攝像頭開啟失敗，點擊按鈕重試';
+  }
+  function buildScanner(preferred){
+    return new QrScanner(video, function(result){
+      var raw=(result&&result.data)?result.data:result; onScanSuccess(raw);
+    },{ returnDetailedScanResult:true, preferredCamera:preferred, highlightScanRegion:false, maxScansPerSecond:10, onDecodeError:function(){} });
+  }
+  function startCamera(manual){
+    if(camStarting) return;
+    if(!window.QrScanner){ camMsg.style.display='flex'; camMsgText.textContent='掃描模塊載入中，請稍候…'; showCamStart('重新載入'); return; }
+    camStarting=true; hideCamStart();
+    try{ video.setAttribute('playsinline',''); video.setAttribute('autoplay',''); video.setAttribute('muted',''); video.muted=true; }catch(e){}
+    if(scanner){ try{scanner.destroy();}catch(e){} scanner=null; }
+    function ok(){
+      camStarting=false;
+      try{ video.play && video.play().catch(function(){}); }catch(e){}
+      if(videoLive()) camMsg.style.display='none';
+      armWatchdog();
+    }
+    function fail(err){
+      // 约束降级：environment 失败则用 ideal 宽松约束再试，保证能出画面
+      try{ if(scanner)scanner.destroy(); }catch(e){}
+      scanner=buildScanner({facingMode:{ideal:'environment'}});
+      scanner.start().then(ok).catch(function(err2){
+        camStarting=false; camMsg.style.display='flex'; camMsgText.textContent=camErrorText(err2||err); showCamStart('重試攝像頭');
+      });
+    }
+    QrScanner.hasCamera().then(function(has){
+      if(!has){ // 枚举说没有，也直接尝试取流（部分 WebView 枚举受限但可取流）
+        scanner=buildScanner('environment'); scanner.start().then(ok).catch(function(e){ camStarting=false; camMsg.style.display='flex'; camMsgText.innerHTML='Camera unavailable.<br/>Use Upload QR to pick a KHQR image.'; showCamStart('重試攝像頭'); });
+        return;
+      }
+      scanner=buildScanner('environment');
+      scanner.start().then(ok).catch(fail);
+    }).catch(function(err){
+      scanner=buildScanner('environment'); scanner.start().then(ok).catch(function(e2){ camStarting=false; camMsg.style.display='flex'; camMsgText.textContent=camErrorText(e2||err); showCamStart('重試攝像頭'); });
+    });
+  }
+
+  setupEngine().then(function(){ startCamera(false); });
+
+  // 关闭
+  document.getElementById('closeBtn').addEventListener('click', function(){
+    try { if (scanner) { scanner.stop(); } } catch(e){}
+    if (history.length > 1) history.back();
+    else location.replace('/');
+  });
+
+  // Flash
+  var flashBtn = document.getElementById('flashBtn');
+  var flashCircle = document.getElementById('flashCircle');
+  var flashLabel = document.getElementById('flashLabel');
+  var iconOff = document.getElementById('flashIconOff');
+  var iconOn = document.getElementById('flashIconOn');
+  flashBtn.addEventListener('click', function(){
+    if (!scanner){ showNotice('Camera not active'); return; }
+    scanner.hasFlash().then(function(has){
+      if (!has){ showNotice('No flash available on this device'); return; }
+      if (flashOn){
+        scanner.turnFlashOff().then(function(){
+          flashOn=false; updateFlashUI(); showNotice('Flash turned off');
+        });
+      } else {
+        scanner.turnFlashOn().then(function(){
+          flashOn=true; updateFlashUI(); showNotice('Flash turned on');
+        }).catch(function(){ showNotice('Could not turn on flash'); });
+      }
+    }).catch(function(){ showNotice('Flash unavailable'); });
+  });
+  function updateFlashUI(){
+    flashBtn.classList.toggle('active', flashOn);
+    flashCircle.querySelector('.dot').style.display = flashOn ? 'block':'none';
+    iconOff.style.display = flashOn ? 'none':'block';
+    iconOn.style.display = flashOn ? 'block':'none';
+    flashLabel.textContent = flashOn ? 'Flash on' : 'Flash';
+  }
+
+  // Sheet 控制
+  function openSheet(id){ document.getElementById(id).style.display='flex'; try{ if(scanner) scanner.pause(); }catch(e){} }
+  function closeSheet(id){ document.getElementById(id).style.display='none'; try{ if(scanner) scanner.start(); }catch(e){} }
+  document.querySelectorAll('[data-close]').forEach(function(btn){
+    btn.addEventListener('click', function(){ closeSheet(btn.dataset.close); });
+  });
+
+  // Merchant ID
+  var merchantInput = document.getElementById('merchantInput');
+  var merchantConfirm = document.getElementById('merchantConfirm');
+  document.getElementById('merchantBtn').addEventListener('click', function(){
+    openSheet('merchantSheet'); setTimeout(function(){ merchantInput.focus(); }, 250);
+  });
+  merchantInput.addEventListener('input', function(){
+    merchantInput.value = merchantInput.value.toUpperCase();
+    merchantConfirm.disabled = !merchantInput.value.trim();
+  });
+  merchantConfirm.addEventListener('click', function(){
+    var v = merchantInput.value.trim(); if(!v) return;
+    closeSheet('merchantSheet');
+    showNotice('Merchant ID ' + v + ' saved');
+  });
+
+  // Upload QR
+  var fileInput = document.getElementById('fileInput');
+  document.getElementById('uploadBtn').addEventListener('click', function(){
+    fileInput.value=''; fileInput.click();
+  });
+  // 上传图片识别：worker 纯解码优先（静态图更稳、正反色都试），失败再用 BarcodeDetector，最后库默认引擎兜底
+  function extractScanData(r){ return (r && typeof r==='object' && 'data' in r) ? r.data : r; }
+  function workerQrEngine(){ return import('/app/assets/qr-scanner-worker.min.js').then(function(m){ return m.createWorker(); }); }
+  function scanImageRobust(file){
+    var opt={ returnDetailedScanResult:true };
+    return workerQrEngine().then(function(eng){
+      return QrScanner.scanImage(file, Object.assign({}, opt, { qrEngine:eng }));
+    }).catch(function(eWorker){
+      if (window.BarcodeDetector && BarcodeDetector.getSupportedFormats){
+        return BarcodeDetector.getSupportedFormats().then(function(fm){
+          if (fm && fm.indexOf('qr_code')>=0){
+            var bd=new BarcodeDetector({formats:['qr_code']});
+            return QrScanner.scanImage(file, Object.assign({}, opt, { qrEngine:bd }));
+          }
+          throw eWorker;
+        }).catch(function(){ return QrScanner.scanImage(file, opt); });
+      }
+      return QrScanner.scanImage(file, opt);
+    });
+  }
+  fileInput.addEventListener('change', function(e){
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    pickedFile = file;
+    if (!window.QrScanner){ showNotice('QR scanner not ready'); return; }
+    showNotice('Reading QR image…');
+    scanImageRobust(file)
+      .then(function(result){ onScanSuccess(extractScanData(result)); })
+      .catch(function(){
+        showNotice('無法識別該二維碼，請確保圖片清晰、完整無裁切');
+        handled = false;
+      });
+  });
+
+  // 页面隐藏时暂停摄像头
+  document.addEventListener('visibilitychange', function(){
+    if (!scanner) return;
+    if (document.hidden){ try{ scanner.stop(); }catch(e){} }
+    else { try{ scanner.start(); }catch(e){} }
+  });
+  // Bakong 识别确认页按钮
+  $('cmRescan').addEventListener('click', rescanConfirm);
+  $('cmRescan2').addEventListener('click', rescanConfirm);
+  $('cmContinue').addEventListener('click', continuePay);
+})();
+</script>
+</body>
+</html>

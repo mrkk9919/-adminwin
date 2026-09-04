@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Generate BAKONG QR — Wing Bank Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Generate BAKONG QR</h1>
+        <p class="subtitle">Create a new Bakong QR payment request</p>
+    </div>
+    <a href="/bakong-qr" class="btn">← Back</a>
+</div>
+
+<div class="card" style="max-width:600px">
+    <form method="post" action="/bakong-qr/generate">
+        <div class="form-group">
+            <label>Account</label>
+            <select name="account_id" required>
+                {% for a in accounts %}
+                <option value="{{ a.id }}">{{ a.account_number }} — {{ a.holder }} ({{ a.currency }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Amount</label>
+            <input type="number" name="amount" step="0.01" min="0.01" required placeholder="100.00">
+        </div>
+        <div class="form-group">
+            <label>Currency</label>
+            <select name="currency">
+                <option value="USD">USD</option>
+                <option value="KHR">KHR</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Description</label>
+            <input type="text" name="description" placeholder="Optional description">
+        </div>
+        <button type="submit" class="btn btn-primary">Generate QR Payment</button>
+    </form>
+</div>
+{% endblock %}
